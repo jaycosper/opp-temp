@@ -264,6 +264,8 @@ SPIxRegs * volatile spi2Base_p
 #define SPIx_CR1_SSM      0x00000200
 #define SPIx_CR1_SSI      0x00000100
 #define SPIx_CR1_MSTR     0x00000004
+#define SPIx_CR1_CPOL     0x00000002
+#define SPIx_CR1_CPHA     0x00000001
 #define SPIx_CR2_TXDMAEN  0x00000002
 
 typedef struct DMAx

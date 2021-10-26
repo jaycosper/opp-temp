@@ -52,9 +52,5 @@
 /* Prototypes */
 void neo_init();
 void neo_task();
-void neo_fill_out_dma_data(
-   INT                  offset,
-   U8                   *srcData_p,
-   INT                  numBytes);
 
 /* [] END OF FILE */

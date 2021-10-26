@@ -74,7 +74,9 @@ typedef struct
    U8                stat;                /* Status */
    BOOL              tickOcc;             /* 10 ms tick occurred */
    BOOL              fadeDone;            /* Fade processing is done */
+   BOOL              neoPxls;             /* TRUE if neopixels vs SPI LEDs */
    INT               numDataBytes;        /* Number of dataBytes (pixels * bytesPerPixel) */
+   INT               numXferBytes;        /* Number of DMA transfer bytes */
    U32               *dma_p;              /* Holds pixel data to be DMA'd */
 } NEO_INFO;
 
@@ -120,7 +122,16 @@ const U32                   NEO_BYTE_EXPAND[256] =
 void neo_fade_proc(
    INT                  offset,
    U8                   newData);
+void neo_spi_fade_proc(
+   INT                  offset,
+   U8                   newData);
 void neo_end_fade_proc();
+void neo_fill_out_dma_data(
+   U8                   *srcData_p,
+   INT                  numBytes);
+void neo_spi_fill_out_dma_data(
+   U8                   *srcData_p,
+   INT                  numBytes);
 
 /*
  * ===============================================================================
@@ -172,22 +183,50 @@ void neo_init()
    gen2g_info.haveNeo = TRUE;
    neoInfo.tickOcc = FALSE;
    neoInfo.fadeDone = FALSE;
+   neoInfo.neoPxls = TRUE;
    numPixels = gen2g_info.neoCfg_p->numPixel;
    if (gen2g_info.neoCfg_p->numPixel == 0)
    {
       numPixels = MAX_NEOPIXELS;
    }
 
+   /* If byte after initial color bytes is 0xa5, assume SPI LEDs */
+   if ((gen2g_info.neoCfg_p->bytesPerPixel == 3) &&
+      (gen2g_info.neoCfg_p->initColor[3] == 0xa5))
+   {
+ 	  neoInfo.neoPxls = FALSE;
+   }
+
    /* Calculate maximum number of bytes to process at a time */
    neoInfo.numDataBytes = numPixels * bytesPerPixel;
-   fade_init_rec(RS232I_FADE_NEO_OFFSET, neoInfo.numDataBytes,
-      &currPxlVal_p, &newPxlVal_p, neo_fade_proc, neo_end_fade_proc);
+   if (neoInfo.neoPxls)
+   {
+      fade_init_rec(RS232I_FADE_NEO_OFFSET, neoInfo.numDataBytes,
+         &currPxlVal_p, &newPxlVal_p, neo_fade_proc, neo_end_fade_proc);
+   }
+   else
+   {
+      fade_init_rec(RS232I_FADE_NEO_OFFSET, neoInfo.numDataBytes,
+         &currPxlVal_p, &newPxlVal_p, neo_spi_fade_proc, neo_end_fade_proc);
+   }
 
    if (gen2g_info.error == NO_ERRORS)
    {
-      /* Allocate neopixel DMA buffer memory, allocate four extra bytes */
-      /* First transmitted bit must not be data since first bit will be extended to match clock */
-      neoInfo.dma_p = malloc((neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT) + sizeof(U32) + 1);
+      if (neoInfo.neoPxls)
+      {
+         /* Allocate neopixel DMA buffer memory, allocate four extra bytes */
+         /* First transmitted bit must not be data since first bit will be extended to match clock */
+         neoInfo.numXferBytes = (neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT) + sizeof(U32) + 1;
+      }
+      else
+      {
+         /* Allocate SPI LED DMA buffer memory, allocate 4 bytes for start frame,
+          *  and 16 bytes as worst case for the stop frame
+          * Each pixel needs 4 bytes instead of 3 for global field
+          */
+         neoInfo.numXferBytes = (numPixels + 5) * sizeof(U32);
+      }
+      neoInfo.dma_p = malloc(neoInfo.numXferBytes);
       if (neoInfo.dma_p == NULL)
       {
          gen2g_info.error = ERR_MALLOC_FAIL;
@@ -196,15 +235,27 @@ void neo_init()
 
    if (gen2g_info.error == NO_ERRORS)
    {
-      /* First byte is zero to synch with clock, since serial LEDs, end of cycle always low, so no extra data  */
+      /* First byte is zero to synch with clock, since serial LEDs, end of cycle always low, so no extra data */
+	  /* For SPI pixels, first 32 bits is always 0 to indicate start frame */
       *neoInfo.dma_p = 0;
       strtDma_p = (U8 *)neoInfo.dma_p;
 
       /* Make buf_p point to first U32 of neopixel data */
       neoInfo.dma_p++;
 
-      /* Zero byte turns off PWM at end of string */
-      *((U8 *)neoInfo.dma_p + (neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT)) = 0;
+      if (neoInfo.neoPxls)
+      {
+         /* Zero byte turns off PWM at end of string */
+         *((U8 *)neoInfo.dma_p + (neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT)) = 0;
+      }
+      else
+      {
+         /* Fill all global and start bits of all frames plus end frames with 0xffffffff */
+         for (index = 0; index < numPixels + 4; index++)
+         {
+            neoInfo.dma_p[index] = 0xffffffff;
+         }
+      }
     
       for (tmp1_p = currPxlVal_p, tmp2_p = newPxlVal_p;
          tmp1_p < currPxlVal_p + neoInfo.numDataBytes; tmp1_p++, tmp2_p++)
@@ -242,25 +293,45 @@ void neo_init()
          }
       }
 
-      neo_fill_out_dma_data(0, currPxlVal_p, neoInfo.numDataBytes);
+      if (neoInfo.neoPxls)
+      {
+         neo_fill_out_dma_data(currPxlVal_p, neoInfo.numDataBytes);
 
-      /* Setup SPI2 GPIO port */
-      gpioBBase_p->CRH &= ~0xf0000000;
-      gpioBBase_p->CRH |= 0xb0000000;  // Alternate function push/pull output 50MHz
-      gpioBBase_p->BSRR = 0x80000000;
+         /* Setup SPI2 GPIO port */
+         gpioBBase_p->CRH &= ~0xf0000000;
+         gpioBBase_p->CRH |= 0xb0000000;  // Alternate function push/pull output 50MHz
+         gpioBBase_p->BSRR = 0x80000000;
+      }
+      else
+      {
+         neo_spi_fill_out_dma_data(currPxlVal_p, neoInfo.numDataBytes);
+
+         /* Setup SPI2 GPIO port */
+         gpioBBase_p->CRH &= ~0xf0f00000;
+         gpioBBase_p->CRH |= 0xb0b00000;  // Alternate function push/pull output 50MHz
+         gpioBBase_p->BSRR = 0xa0000000;
+      }
 
       /* Enable clocks to SPI2 and DMA1 */
       rccBase_p->AHBENR |= 0x00000001;  // DMA1
       rccBase_p->APB1ENR |= 0x00004000;  // SPI2
 
       /* Set up SPI2 */
-      spi2Base_p->CR1 = SPIx_CR1_SPE | SPIx_CR1_BR_8 | SPIx_CR1_MSTR | SPIx_CR1_SSM | SPIx_CR1_SSI;
-      spi2Base_p->CR2 = SPIx_CR2_TXDMAEN;
+      if (neoInfo.neoPxls)
+      {
+         spi2Base_p->CR1 = SPIx_CR1_SPE | SPIx_CR1_BR_8 | SPIx_CR1_MSTR | SPIx_CR1_SSM | SPIx_CR1_SSI;
+      }
+      else
+      {
+         spi2Base_p->CR1 = SPIx_CR1_SPE | SPIx_CR1_MSTR | SPIx_CR1_SSM |
+            SPIx_CR1_SSI | SPIx_CR1_CPOL | SPIx_CR1_CPHA;
+      }
+     spi2Base_p->CR2 = SPIx_CR2_TXDMAEN;
 
       /* Set up DMA */
       dma1Base_p->CPAR5 = (R32)&spi2Base_p->DR;
       dma1Base_p->CMAR5 = (R32)strtDma_p;
-      dma1Base_p->CNDTR5 = (neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT) + sizeof(U32) + 1;
+      dma1Base_p->CNDTR5 = neoInfo.numXferBytes;
       dma1Base_p->CCR5 = DMAx_CCR_MINC | DMAx_CCR_DIR | DMAx_CCR_EN;
 
       neoInfo.stat = STAT_DMA_DATA;
@@ -317,6 +388,36 @@ void neo_fade_proc(
    U8                   newData)
 {
    *(neoInfo.dma_p + offset) = NEO_BYTE_EXPAND[newData];
+}
+
+/*
+ * ===============================================================================
+ *
+ * Name: neo_spi_fade_proc
+ *
+ * ===============================================================================
+ */
+/**
+ * SPI fade processing
+ *
+ * Special processing for SPI LEDs.  Used to fill out DMA data stream.
+ *
+ * @param   None
+ * @return  None
+ *
+ * @pre     None
+ * @note    None
+ *
+ * ===============================================================================
+ */
+void neo_spi_fade_proc(
+   INT                  offset,
+   U8                   newData)
+{
+   INT wordOffs = offset/3;
+   INT byteOffs = (offset % 3) + 1;
+   U8* byte_p = (U8 *)&neoInfo.dma_p[wordOffs];
+   byte_p[byteOffs] = newData;
 }
 
 /*
@@ -385,7 +486,7 @@ void neo_task()
          neoInfo.stat = STAT_DMA_DATA;
 
          dma1Base_p->CCR5 = DMAx_CCR_MINC | DMAx_CCR_DIR;
-         dma1Base_p->CNDTR5 = (neoInfo.numDataBytes * SPI_BITS_PER_NEO_BIT) + sizeof(U32) + 1;
+         dma1Base_p->CNDTR5 = neoInfo.numXferBytes;
          dma1Base_p->CCR5 = DMAx_CCR_MINC | DMAx_CCR_DIR | DMAx_CCR_EN;
       }
    }
@@ -403,7 +504,6 @@ void neo_task()
  *
  * Update the pixel's command
  *
- * @param   offset      [in]        Byte offset to start conversion
  * @param   srcData_p   [in]        Pointer to source of data
  * @param   numBytes    [in]        Number of bytes to convert
  * @return  None
@@ -414,19 +514,43 @@ void neo_task()
  * ===============================================================================
  */
 void neo_fill_out_dma_data(
-   INT                  offset,
    U8                   *srcData_p,
    INT                  numBytes)
 {
-   U32                  *dma_p;
-   U8                   *end_p;
-   U8                   data;
-
-   dma_p = neoInfo.dma_p + offset;
-   for (end_p = srcData_p + numBytes; srcData_p < end_p; srcData_p++)
+   for (INT index = 0; index < numBytes; index++, srcData_p++)
    {
-      data = *srcData_p;
-      *dma_p++ = NEO_BYTE_EXPAND[data];
+      neo_fade_proc(index, *srcData_p);
+   }
+}
+
+/*
+ * ===============================================================================
+ *
+ * Name: neo_spi_fill_out_dma_data
+ *
+ * ===============================================================================
+ */
+/**
+ * SPI LED fill out DMA data
+ *
+ * Update the pixel's command
+ *
+ * @param   srcData_p   [in]        Pointer to source of data
+ * @param   numBytes    [in]        Number of bytes to convert
+ * @return  None
+ *
+ * @pre     None
+ * @note    None
+ *
+ * ===============================================================================
+ */
+void neo_spi_fill_out_dma_data(
+   U8                   *srcData_p,
+   INT                  numBytes)
+{
+   for (INT index = 0; index < numBytes; index++, srcData_p++)
+   {
+      neo_spi_fade_proc(index, *srcData_p);
    }
 }
 
