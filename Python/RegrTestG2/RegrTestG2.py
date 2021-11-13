@@ -667,6 +667,8 @@ def TestOnOffSolConfig():
 def TestDelaySolConfig():
     # Reconfigure second solenoid with the maximum delay for comparing
     sendCfgIndSolCmd(0x04, 0x03, 0x30, 0x00)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
     sendCfgIndSolCmd(0x05, 0x0b, 0x30, 0x0f)
     retCode = rcvEomResp()
     if retCode: return (retCode)
@@ -763,6 +765,8 @@ def TestSolInputConfig():
     retCode = rcvEomResp()
     if retCode: return (retCode)
     sendCfgIndSolCmd(0x06, 0x01, 0x30, 0x00)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
     sendCfgIndSolCmd(0x04, 0x05, 0x00, 0x00)
     retCode = rcvEomResp()
     if retCode: return (retCode)
@@ -773,6 +777,9 @@ def TestSolInputConfig():
     if (ch != 'y') and (ch != 'Y'):
         print "\nDisable solenoid switch configuration failed."
         return 1906
+    sendSetSolInputCmd(0x08, 0x86)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
     print "\nVerify flipper is disabled when input is removed."
     print "Press and hold first flipper input switch, verify flipper is held."
     print "Press (y) while holding the flipper button"
@@ -800,6 +807,36 @@ def TestCancelSolConfig():
     if (ch != 'y') and (ch != 'Y'):
         print "\nCancel initial kick of solenoid failed."
         return 2101
+    return 0
+
+#Test solenoid pwm config.
+def TestSolPwmConfig():
+    # Reconfigure first solenoid having maximum initial kick but 12.5% PWM
+    sendCfgIndSolCmd(0x04, 0x01, 0xff, 0x02)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
+    # Change initial kick PWM to match hold PWM
+    sendSolKickPwmCmd(0x03, 0x04)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
+    
+    print "\nVerify solenoid 0 initial kick and hold look the same"
+    print "Press (y) if working, (n) if not working."
+    ch = getChar()
+    if (ch != 'y') and (ch != 'Y'):
+        print "\nInitial kick PWM set failed."
+        return 2201
+    # Change initial kick PWM back to 100%
+    sendSolKickPwmCmd(0x1f, 0x04)
+    retCode = rcvEomResp()
+    if retCode: return (retCode)
+    
+    print "\nVerify solenoid 0 initial kick is 100% on and hold looks dimmer"
+    print "Press (y) if working, (n) if not working."
+    ch = getChar()
+    if (ch != 'y') and (ch != 'Y'):
+        print "\nInitial kick PWM set failed."
+        return 2202
     return 0
 
 #Test incandescent commands.
@@ -1382,6 +1419,21 @@ def sendSetSolInputCmd(inpIndex, solIndex):
     ser.write(sendCmd)
     return (0)
 
+#send solenoid kick PWM cmd
+def sendSolKickPwmCmd(pwmVal, solIndex):
+    global ser
+    global gen2AddrArr
+    cmdArr = []
+    cmdArr.append(gen2AddrArr[0])
+    cmdArr.append(rs232Intf.SOL_KICK_PWM)
+    cmdArr.append(chr(pwmVal))
+    cmdArr.append(chr(solIndex))
+    cmdArr.append(calcCrc8(cmdArr))
+    cmdArr.append(rs232Intf.EOM_CMD)
+    sendCmd = ''.join(cmdArr)
+    ser.write(sendCmd)
+    return (0)
+
 #send incandescent cmd
 def sendIncandCmd(subCmd, mask):
     global ser
@@ -1567,6 +1619,9 @@ if not skipSolTests:
     if retCode != 0: sys.exit(retCode)
 
     retCode = TestCancelSolConfig()
+    if retCode != 0: sys.exit(retCode)
+
+    retCode = TestSolPwmConfig()
     if retCode != 0: sys.exit(retCode)
 
 if not skipIncandTests:

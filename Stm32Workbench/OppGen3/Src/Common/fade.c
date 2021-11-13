@@ -135,14 +135,12 @@ void fade_process_fade_bytes();
 void fade_init()
 {
    INT               index;
-   fadeInfo.totNumBytes = 0;
-   fadeInfo.maxProcBytes = 0;
-   fadeInfo.totBytesProc = 0;
-   fadeInfo.tickOcc = FALSE;
-   fadeInfo.fadeRunning = FALSE;
-   for (index = 0; index < MAX_FADE_RECS; index++)
+   U8                *u8_p;
+
+   /* Init fadeInfo structure */
+   for (index = 0, u8_p = (U8 *)&fadeInfo; index < sizeof(fadeInfo); index++)
    {
-      fadeInfo.fadeRec[index].valid = FALSE;
+      *u8_p++ = 0;
    }
 }
 

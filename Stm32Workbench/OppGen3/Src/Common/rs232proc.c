@@ -95,6 +95,9 @@ RS232_GLOB_T                  rs232_glob;
 void digital_set_solenoid_input(
    RS232I_SET_SOL_INP_E       inputIndex,
    U8                         solIndex);
+void digital_set_kick_pwm(
+   U8                         kickPwm,
+   U8                         solIndex);
 void digital_upd_sol_cfg(
    U16                        updMask);
 void digital_upd_inp_cfg(
@@ -300,6 +303,7 @@ void rs232proc_task(void)
                   case RS232I_CONFIG_IND_INP:
                   case RS232I_SET_IND_NEO:
                   case RS232I_SET_SOL_INPUT:
+                  case RS232I_SOL_KICK_PWM:
                   {
                      /* Verify CRC to be sure */
                      rs232_glob.state = RS232_RCV_DATA_CMD;
@@ -592,6 +596,12 @@ void rs232proc_task(void)
                      case RS232I_SET_SOL_INPUT:
                      {
                         digital_set_solenoid_input(rs232_glob.rxTmpBuf[CONFIG_NUM_OFFSET],
+                           rs232_glob.rxTmpBuf[CONFIG_DATA_OFFSET]);
+                        break;
+                     }
+                     case RS232I_SOL_KICK_PWM:
+                     {
+                        digital_set_kick_pwm(rs232_glob.rxTmpBuf[CONFIG_NUM_OFFSET],
                            rs232_glob.rxTmpBuf[CONFIG_DATA_OFFSET]);
                         break;
                      }

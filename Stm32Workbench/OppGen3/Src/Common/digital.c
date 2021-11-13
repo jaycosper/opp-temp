@@ -52,6 +52,7 @@
 #include "stdtypes.h"
 #include "stdlintf.h"
 #include "rs232intf.h"
+#include "fadeintf.h"
 #include "gen2glob.h"
 #include "procdefs.h"         /* for EnableInterrupts macro */
 
@@ -101,6 +102,8 @@ typedef struct
    BOOL                       clearRcvd;
    DIG_SOL_STATE_E            solState;
    U8                         offCnt;
+   U16                        intenDur;
+   U16                        pwmIntenDur;
    INT                        bit;
    INT                        startMs;
    U32                        inpBits;
@@ -142,7 +145,6 @@ typedef struct
 
 typedef struct
 {
-   U32                        inpMask;
    U16                        solMask;
    U32                        prevInputs;
    U32                        filtInputs;
@@ -160,8 +162,12 @@ DIG_GLOB_T                    dig_info;
 
 /* Prototypes */
 INT timer_get_ms_count();
+U16 timer_get_us_count();
 void digital_set_solenoid_input(
    RS232I_SET_SOL_INP_E       inputIndex,
+   U8                         solIndex);
+void digital_set_kick_pwm(
+   U8                         kickPwm,
    U8                         solIndex);
 void digital_upd_sol_cfg(
    U16                        updMask);
@@ -231,12 +237,11 @@ void digital_init(void)
          solState_p->solState = SOL_STATE_IDLE;
          solState_p->bit = 1 << (((index >> 2) << 3) + (index & 0x03) + 4);
          solState_p->inpBits = 0;
+         solState_p->intenDur = 1000;
       }
-      dig_info.inpMask = 0;
       dig_info.solMask = 0;
       dig_info.filtInputs = 0;
       dig_info.mtrxInpMask = 0;
-      gen2g_info.servoMask = 0;
      
       /* Set the location of the input configuration data */
       gen2g_info.inpCfg_p = (GEN2G_INP_CFG_T *)gen2g_info.freeCfg_p;
@@ -250,15 +255,15 @@ void digital_init(void)
          {
 #if GEN2G_DEBUG_PORT == 0
              /* Set up bit mask of valid inputs */
-             dig_info.inpMask |= (INPUT_BIT_MASK << (index << 3));
+        	 gen2g_info.inpMask |= (INPUT_BIT_MASK << (index << 3));
 #else
              if ((index == 0) || (index == 2))
              {
-                 dig_info.inpMask |= (DBG_INPUT_BIT_MASK << (index << 3));
+            	 gen2g_info.inpMask |= (DBG_INPUT_BIT_MASK << (index << 3));
              }
              else
              {
-                 dig_info.inpMask |= (INPUT_BIT_MASK << (index << 3));
+            	 gen2g_info.inpMask |= (INPUT_BIT_MASK << (index << 3));
              }
 #endif
              /* Check if there are any servo outputs, since pins 8 to 16 are inputs,
@@ -271,7 +276,7 @@ void digital_init(void)
                  {
                 	if (gen2g_info.inpCfg_p->inpCfg[input] >= SERVO_OUTPUT_THRESH)
                 	{
-                		dig_info.inpMask &= ~(1 << input);
+                		gen2g_info.inpMask &= ~(1 << input);
                 		gen2g_info.servoMask |= (1 << (input - GEN2G_SERVO_FIRST_INDX));
                 		outputMask |= (1 << input);
                 	}
@@ -288,15 +293,15 @@ void digital_init(void)
             
 #if GEN2G_DEBUG_PORT == 0
             /* Set up bit mask of valid inputs */
-            dig_info.inpMask |= (SOL_INP_BIT_MASK << (index << 3));
+            gen2g_info.inpMask |= (SOL_INP_BIT_MASK << (index << 3));
 #else
              if ((index == 0) || (index == 2))
              {
-                 dig_info.inpMask |= (DBG_SOL_INP_BIT_MASK << (index << 3));
+            	 gen2g_info.inpMask |= (DBG_SOL_INP_BIT_MASK << (index << 3));
              }
              else
              {
-                 dig_info.inpMask |= (SOL_INP_BIT_MASK << (index << 3));
+            	 gen2g_info.inpMask |= (SOL_INP_BIT_MASK << (index << 3));
              }
 #endif
              /* Check if there are any servo outputs, since pins 8 to 16 are inputs,
@@ -309,7 +314,7 @@ void digital_init(void)
                  {
                 	if (gen2g_info.inpCfg_p->inpCfg[input] >= SERVO_OUTPUT_THRESH)
                 	{
-                		dig_info.inpMask &= ~(1 << input);
+                		gen2g_info.inpMask &= ~(1 << input);
                 		gen2g_info.servoMask |= (1 << (input - GEN2G_SERVO_FIRST_INDX));
                 		outputMask |= (1 << input);
                 	}
@@ -336,10 +341,6 @@ void digital_init(void)
                {
             	   gen2g_info.switchMtrxActHigh = TRUE;
                }
-               else
-               {
-            	   gen2g_info.switchMtrxActHigh = FALSE;
-               }
             }
             else
             {
@@ -352,9 +353,9 @@ void digital_init(void)
             if (index == 0)
             {
 #if GEN2G_DEBUG_PORT == 0
-               dig_info.inpMask |= NEO_INP_BIT_MASK;
+               gen2g_info.inpMask |= NEO_INP_BIT_MASK;
 #else
-               dig_info.inpMask |= DBG_NEO_INP_BIT_MASK;
+               gen2g_info.inpMask |= DBG_NEO_INP_BIT_MASK;
 #endif
                outputMask |= NEO_OUT_BIT_MASK;
             }
@@ -369,7 +370,7 @@ void digital_init(void)
             if (index == 0)
             {
                foundSol = TRUE;
-               dig_info.inpMask |= NEO_SOL_INP_BIT_MASK;
+               gen2g_info.inpMask |= NEO_SOL_INP_BIT_MASK;
 #if GEN2G_DEBUG_PORT == 0
                dig_info.solMask |= SOL_MASK;
                outputMask |= NEO_SOL_OUT_BIT_MASK;
@@ -408,7 +409,7 @@ void digital_init(void)
       {
     	  usedBit = FALSE;
     	  pinCfg.Pin = dig_pinInfo[index].GPIO_Pin;
-          if ((dig_info.inpMask & (1 << index)) != 0)
+          if ((gen2g_info.inpMask & (1 << index)) != 0)
           {
         	  pinCfg.Mode = GPIO_MODE_INPUT;
               pinCfg.Pull = GPIO_PULLUP;
@@ -448,7 +449,7 @@ void digital_init(void)
              HAL_GPIO_Init(dig_pinInfo[index].port_p, &pinCfg);
           }
       }
-      dig_info.filtInputs = stdldigio_read_all_ports(dig_info.inpMask | dig_info.mtrxInpMask);
+      dig_info.filtInputs = stdldigio_read_all_ports(gen2g_info.inpMask | dig_info.mtrxInpMask);
 
       /* Setup GPB2 as output for status (available on STM32F103CB boards) */
       pinCfg.Pin = GPIO_PIN_2;
@@ -521,13 +522,9 @@ void digital_init(void)
             }
          }
          /* Initialize matrix input for rs232 reports */
-         for (index = 0; index < RS232I_MATRX_COL; index++)
+         if (!gen2g_info.switchMtrxActHigh)
          {
-            if (gen2g_info.switchMtrxActHigh)
-            {
-               gen2g_info.matrixInp[index] = 0;
-            }
-            else
+            for (index = 0; index < RS232I_MATRX_COL; index++)
             {
                gen2g_info.matrixInp[index] = 0xff;
             }
@@ -536,7 +533,7 @@ void digital_init(void)
       
       /* Set up the initial state */
       digital_upd_sol_cfg((1 << RS232I_NUM_GEN2_SOL) - 1);
-      digital_upd_inp_cfg(dig_info.inpMask);
+      digital_upd_inp_cfg(gen2g_info.inpMask);
    }
 
 } /* End digital_init */
@@ -575,6 +572,7 @@ void digital_task(void)
    RS232I_CFG_INP_TYPE_E      cfg;
    U32                        currBit;
    INT                        elapsedTimeMs;
+   U16                        currUsTime;
 
 #define SWITCH_THRESH         16
 #define PWM_PERIOD            16
@@ -583,11 +581,11 @@ void digital_task(void)
    if (gen2g_info.validCfg)
    {
       /* Grab the inputs */
-      inputs = stdldigio_read_all_ports(dig_info.inpMask);
+      inputs = stdldigio_read_all_ports(gen2g_info.inpMask);
       if ((gen2g_info.typeWingBrds & ((1 << WING_INP) | (1 << WING_SOL))) != 0)
       {
          /* See what bits have changed */
-         changedBits = (dig_info.prevInputs ^ inputs) & dig_info.inpMask;
+         changedBits = (dig_info.prevInputs ^ inputs) & gen2g_info.inpMask;
          updFilterHi = 0;
          updFilterLow = 0;
          
@@ -595,7 +593,7 @@ void digital_task(void)
          for (index = 0, currBit = 1, inpState_p = &dig_info.inpState[0];
             index < RS232I_NUM_GEN2_INP; index++, currBit <<= 1, inpState_p++)
          {
-            if (currBit & dig_info.inpMask)
+            if (currBit & gen2g_info.inpMask)
             {
                /* Check if this count has changed */
                if (changedBits & currBit)
@@ -645,7 +643,7 @@ void digital_task(void)
       {
          if (dig_info.mtrxData.waitCnt >= dig_info.mtrxData.mtrxWaitCntThresh)
          {
-        	dig_info.mtrxData.waitCnt = 0;
+            dig_info.mtrxData.waitCnt = 0;
     	    data = (U8)(stdldigio_read_all_ports(dig_info.mtrxInpMask) >> 24);
             chngU8 = data ^ gen2g_info.matrixPrev[dig_info.mtrxData.column];
             gen2g_info.matrixPrev[dig_info.mtrxData.column] = data;
@@ -719,29 +717,35 @@ void digital_task(void)
       
       if ((gen2g_info.typeWingBrds & (1 << WING_SOL)) != 0)
       {
-        /* Perform solenoid processing */
+         /* Perform solenoid processing */
+         currUsTime = timer_get_us_count();
          for (index = 0, currBit = 1, solState_p = &dig_info.solState[0],
             solCfg_p = &gen2g_info.solDrvCfg_p->solCfg[0];
             index < RS232I_NUM_GEN2_SOL; index++, currBit <<= 1, solState_p++, solCfg_p++)
          {
+            /* Update sol output bits every time */
+            if (solState_p->solState != SOL_STATE_IDLE)
+            {
+               dig_info.outputMask |= solState_p->bit;
+            }
+
             /* Check if processor is requesting a kick, or an input changed */
             if ((solState_p->solState == SOL_STATE_IDLE) &&
                ((gen2g_info.solDrvProcCtl & currBit) ||
                (updFilterLow & solState_p->inpBits)))
             {
                /* Check if processor is kicking normal solenoid */
+               dig_info.outputMask |= solState_p->bit;
                if ((solCfg_p->cfg & (ON_OFF_SOL | DLY_KICK_SOL)) == 0)
                {
                   /* Start the solenoid kick */
                   solState_p->solState = SOL_INITIAL_KICK;
                   solState_p->startMs = timer_get_ms_count();
-                  dig_info.outputMask |= solState_p->bit;
                   dig_info.outputUpd |= solState_p->bit;
                }
                else if ((solCfg_p->cfg & ON_OFF_SOL) != 0)
                {
                   solState_p->solState = SOL_FULL_ON_SOLENOID;
-                  dig_info.outputMask |= solState_p->bit;
                   dig_info.outputUpd |= solState_p->bit;
                }
                else if ((solCfg_p->cfg & DLY_KICK_SOL) != 0)
@@ -764,55 +768,62 @@ void digital_task(void)
             {
                if ((solCfg_p->cfg & CAN_CANCEL) != 0)
                {
-                   if (((gen2g_info.solDrvProcCtl & currBit) == 0) &&
-    			     ((solState_p->inpBits == 0) ||
+                  if (((gen2g_info.solDrvProcCtl & currBit) == 0) &&
+                     ((solState_p->inpBits == 0) ||
                      ((solState_p->inpBits & inputs) == solState_p->inpBits)))
-                   {
-                      /* Switch is inactive, turn off drive signal */
-                      dig_info.outputMask |= solState_p->bit;
-                      solState_p->solState = SOL_STATE_IDLE;
-                   }
+                  {
+                     /* Switch is inactive, move to idle */
+                     solState_p->solState = SOL_STATE_IDLE;
+                  }
                }
             
                if (solState_p->solState == SOL_INITIAL_KICK)
                {
-                   /* Check if elapsed time is over initial kick time */
-                   elapsedTimeMs = timer_get_ms_count() - solState_p->startMs;
-                   if (elapsedTimeMs >= solCfg_p->initKick)
-                   {
-                      /* In all cases turn off the solenoid driver */
-                      dig_info.outputMask |= solState_p->bit;
-
-                      /* If this is a normal solenoid */
-                      if ((solCfg_p->cfg & (ON_OFF_SOL | DLY_KICK_SOL | USE_MATRIX_INP)) == 0)
-                      {
-                         /* See if this has a sustaining PWM */
-                         if (solCfg_p->minOffDuty & DUTY_CYCLE_MASK)
-                         {
-                            /* Make sure the input continues to be set */
-                            if (solState_p->clearRcvd)
-                            {
-                               solState_p->solState = SOL_MIN_TIME_OFF;
-                               solState_p->offCnt = 0;
-                            }
-                            else
-                            {
-                               solState_p->solState = SOL_SUSTAIN_PWM;
-                            }              
-                         }
-                         else
-                         {
-                            solState_p->solState = SOL_MIN_TIME_OFF;
-                            solState_p->offCnt = 0;
-                         }
-                      }
-                      else if ((solCfg_p->cfg & (DLY_KICK_SOL | USE_MATRIX_INP)) != 0)
-                      {
-                         solState_p->solState = SOL_MIN_TIME_OFF;
-                         solState_p->offCnt = 0;
-                      }
-                      solState_p->startMs = timer_get_ms_count();
-                   }
+                  /* Check if elapsed time is over initial kick time */
+                  elapsedTimeMs = timer_get_ms_count() - solState_p->startMs;
+                  if (elapsedTimeMs >= solCfg_p->initKick)
+                  {
+                     /* If this is a normal solenoid */
+                     if ((solCfg_p->cfg & (ON_OFF_SOL | DLY_KICK_SOL | USE_MATRIX_INP)) == 0)
+                     {
+                        /* See if this has a sustaining PWM */
+                        if (solCfg_p->minOffDuty & DUTY_CYCLE_MASK)
+                        {
+                           /* Make sure the input continues to be set */
+                           if (solState_p->clearRcvd)
+                           {
+                              solState_p->solState = SOL_MIN_TIME_OFF;
+                              solState_p->offCnt = 0;
+                           }
+                           else
+                           {
+                              /* Grab pwmIntenDur */
+                              solState_p->solState = SOL_SUSTAIN_PWM;
+                              solState_p->pwmIntenDur =
+                                 FADE_USEC_DUR[(solCfg_p->minOffDuty & DUTY_CYCLE_MASK) << 1];
+                              if (currUsTime <= solState_p->pwmIntenDur)
+                              {
+                                 dig_info.outputUpd |= solState_p->bit;
+                              }
+                           }
+                        }
+                        else
+                        {
+                           solState_p->solState = SOL_MIN_TIME_OFF;
+                           solState_p->offCnt = 0;
+                        }
+                     }
+                     else if ((solCfg_p->cfg & (DLY_KICK_SOL | USE_MATRIX_INP)) != 0)
+                     {
+                        solState_p->solState = SOL_MIN_TIME_OFF;
+                        solState_p->offCnt = 0;
+                     }
+                     solState_p->startMs = timer_get_ms_count();
+                  }
+                  else if (currUsTime <= solState_p->intenDur)
+                  {
+                     dig_info.outputUpd |= solState_p->bit;
+                  }
                }
             }
             else if (solState_p->solState == SOL_SUSTAIN_PWM)
@@ -825,24 +836,15 @@ void digital_task(void)
                }
                if (!solState_p->clearRcvd)
                {
-                  /* Do slow PWM function, initially off, then on for duty cycle */
-                  elapsedTimeMs = timer_get_ms_count() - solState_p->startMs;
-                  if (elapsedTimeMs > PWM_PERIOD)
+                  /* Do faster PWM function by testing us timer */
+                  if (currUsTime <= solState_p->pwmIntenDur)
                   {
-                     /* PWM period is over, clear drive signal */
-                     dig_info.outputMask |= solState_p->bit;
-                     solState_p->startMs = timer_get_ms_count();
-                  }
-                  else if (elapsedTimeMs > PWM_PERIOD - (solCfg_p->minOffDuty & DUTY_CYCLE_MASK))
-                  {
-                     dig_info.outputMask |= solState_p->bit;
                      dig_info.outputUpd |= solState_p->bit;
                   }
                }
                else
                {
-                  /* Switch is inactive, turn off drive signal */
-                  dig_info.outputMask |= solState_p->bit;
+                  /* Switch is inactive, move to idle */
                   solState_p->solState = SOL_STATE_IDLE;
                }
             }
@@ -874,7 +876,6 @@ void digital_task(void)
                   /* Start the solenoid kick */
                   solState_p->solState = SOL_INITIAL_KICK;
                   solState_p->startMs = timer_get_ms_count();
-                  dig_info.outputMask |= solState_p->bit;
                   dig_info.outputUpd |= solState_p->bit;
                }
             }
@@ -884,15 +885,13 @@ void digital_task(void)
 			     ((solState_p->inpBits == 0) ||
                  ((solState_p->inpBits & inputs) == solState_p->inpBits)))
                {
-                  /* Switch is inactive, turn off drive signal */
-                  dig_info.outputMask |= solState_p->bit;
+                  /* Switch is inactive, move to idle */
                   solState_p->solState = SOL_STATE_IDLE;
                }
-            }
-            else if ((solState_p->solState == SOL_STATE_IDLE) &&
-               (dig_info.solMask & currBit))
-            {
-            	dig_info.outputMask |= solState_p->bit;
+               else if (currUsTime <= solState_p->intenDur)
+               {
+                  dig_info.outputUpd |= solState_p->bit;
+               }
             }
          }
       }
@@ -971,6 +970,37 @@ void digital_set_solenoid_input(
 /*
  * ===============================================================================
  * 
+ * Name: digital_set_kick_pwm
+ *
+ * ===============================================================================
+ */
+/**
+ * Set kick PWM
+ *
+ * Set a solenoid's power during the kick portion.  PWM is a number from 0-32
+ * where 0 is off, and 32 is 100% power.
+ *
+ * @param   kickPwm value from 0-32
+ * @param   solIndex index of solenoid (0-15)
+ * @return  None
+ *
+ * @pre     None
+ *
+ * ===============================================================================
+ */
+void digital_set_kick_pwm(
+   U8                         kickPwm,
+   U8                         solIndex)
+{
+   if (solIndex < RS232I_NUM_GEN2_SOL)
+   {
+      dig_info.solState[solIndex].intenDur = FADE_USEC_DUR[kickPwm];
+   }
+} /* End digital_set_kick_pwm */
+
+/*
+ * ===============================================================================
+ *
  * Name: digital_upd_sol_cfg
  * 
  * ===============================================================================
@@ -1013,11 +1043,11 @@ void digital_upd_sol_cfg(
             inpState_p = &dig_info.inpState[((index & 0x0c) << 1) + (index & 0x03)];
             inpState_p->cnt = 0;
 
-            /* Don't set input bit if solenoid 0 and NeoSol wing */
-            if ((index != 0) || (gen2g_info.nvCfgInfo.wingCfg[0] != WING_NEO_SOL))
+            /* Don't set certain input bits for NeoSol and SPI clock if configured */
+            if ((currBit & gen2g_info.disSolInp) == 0)
             {
                inputBit = (1 << (((index & 0x0c) << 1) + (index & 0x03)));
-               if (inputBit & dig_info.inpMask)
+               if (inputBit & gen2g_info.inpMask)
                {
                   solState_p->inpBits |= inputBit;
                }

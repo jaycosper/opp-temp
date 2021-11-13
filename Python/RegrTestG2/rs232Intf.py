@@ -75,6 +75,8 @@ SET_IND_NEO_CMD     = '\x16'
 SET_SOL_INPUT_CMD   = '\x17'
 PASS_THRU_CMD       = '\x18'
 READ_MATRIX_INP_CMD = '\x19'
+GET_INP_TIMESTAMP   = '\x1a'
+SOL_KICK_PWM        = '\x1b'
 
 RS232I_NEO_FADE_CMD = '\x40'
 

@@ -90,8 +90,6 @@ void timer_init()
    tmrInfo.msCnt = 0;
    tmrInfo.cnt10ms = 0;
    tmrInfo.incandCnt = 5;   /* Offset cnt10ms by 5 ms */
-   gen2g_info.ledStateNum = 0;
-   gen2g_info.ledStatus = 0;
     
    // Enable TIM1 clock
    rccBase_p->APB2ENR |= 0x00000800;

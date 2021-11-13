@@ -289,24 +289,19 @@ void main_copy_flash_to_ram()
    U32                        *src_p;
    U32                        *dst_p;
    INT                        index;
+   U8                         *u8_p;
 
    /* Init gen2g structure */
-   gen2g_info.typeWingBrds = 0;
-   gen2g_info.crcErr = 0;
+   for (index = 0, u8_p = (U8 *)&gen2g_info; index < sizeof(gen2g_info); index++)
+   {
+      *u8_p++ = 0;
+   }
+
+   /* Initialize non-zero values */
    gen2g_info.statusBlink = GEN2G_STAT_LED_ON;
-   gen2g_info.error = NO_ERRORS;
-   gen2g_info.validCfg = FALSE;
-   gen2g_info.haveNeo = FALSE;
-   gen2g_info.haveSpi = FALSE;
-   gen2g_info.haveFade = FALSE;
-   gen2g_info.haveLampMtrx = FALSE;
    gen2g_info.freeCfg_p = &gen2g_info.nvCfgInfo.cfgData[0];
    gen2g_info.prodId = gen2g_persist_p->prodId;
    gen2g_info.serNum = gen2g_persist_p->serNum;
-   for (index = 0; index < RS232I_NUM_GEN2_INP; index++)
-   {
-      gen2g_info.inpTimestamp[index] = 0;
-   }
 
    while (!gen2g_info.validCfg)
    {

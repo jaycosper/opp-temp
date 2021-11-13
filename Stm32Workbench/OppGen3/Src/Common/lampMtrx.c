@@ -66,7 +66,6 @@ typedef struct
    U8                currCol;
    INT               lastTime;
    U16               *intenData_p;
-   U32               currFadeBitMask[LAMPMTRX_MAX_LAMPS];
 } LAMPMTRX_INFO;
 
 LAMPMTRX_INFO lampInfo;

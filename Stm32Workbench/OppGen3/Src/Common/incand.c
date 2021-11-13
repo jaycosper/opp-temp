@@ -57,7 +57,7 @@ typedef struct
 {
    U8                validMask;
    U8                invertMask;  /* 1 if wing is high side incand */
-   U32               intenDur[INCAND_MAX_INCAND];
+   U16               intenDur[INCAND_MAX_INCAND];
    U32               ledBlinkSlowBitfield;
    U32               ledBlinkFastBitfield;
 } INCAND_INFO;
