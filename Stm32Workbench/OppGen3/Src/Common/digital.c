@@ -52,7 +52,6 @@
 #include "stdtypes.h"
 #include "stdlintf.h"
 #include "rs232intf.h"
-#include "fadeintf.h"
 #include "gen2glob.h"
 #include "procdefs.h"         /* for EnableInterrupts macro */
 
@@ -87,6 +86,18 @@ const DIG_PIN_INFO_T dig_pinInfo[RS232I_NUM_GEN2_INP] =
       { GPIOB, GPIO_PIN_0 }, { GPIOB, GPIO_PIN_1 },
       { GPIOB, GPIO_PIN_10 }, { GPIOB, GPIO_PIN_11 } };
 
+const U32                   PWM_MASK[32] =
+{
+   0x00000001, 0x00100001, 0x01004001, 0x41002001,
+   0x08120201, 0x14240201, 0x41084481, 0x22A21081,
+   0x608A2121, 0x32A28421, 0x62259421, 0x5125CA11,
+   0x6296C451, 0x63B28A91, 0x6ADA3911, 0xABA92E51,
+   0x7763A4A9, 0x76AEB239, 0x75DC96B9, 0x77AC5B75,
+   0x7BD65BB9, 0x7BDEBAB3, 0x7B7BAEF9, 0x7EF7BABB,
+   0x7EDDEF7D, 0x7FBFDBD7, 0x7FBFB7EF, 0x7FFBFF7D,
+   0x7FFDFF7F, 0x7FFFF7FF, 0x7FFFFFFF, 0xFFFFFFFF,
+};
+
 typedef enum
 {
    SOL_STATE_IDLE             = 0x00,
@@ -102,8 +113,8 @@ typedef struct
    BOOL                       clearRcvd;
    DIG_SOL_STATE_E            solState;
    U8                         offCnt;
-   U16                        intenDur;
-   U16                        pwmIntenDur;
+   U32                        kickIntenMask;
+   U32                        holdIntenMask;
    INT                        bit;
    INT                        startMs;
    U32                        inpBits;
@@ -237,7 +248,7 @@ void digital_init(void)
          solState_p->solState = SOL_STATE_IDLE;
          solState_p->bit = 1 << (((index >> 2) << 3) + (index & 0x03) + 4);
          solState_p->inpBits = 0;
-         solState_p->intenDur = 1000;
+         solState_p->kickIntenMask = 0xffffffff;
       }
       dig_info.solMask = 0;
       dig_info.filtInputs = 0;
@@ -572,7 +583,7 @@ void digital_task(void)
    RS232I_CFG_INP_TYPE_E      cfg;
    U32                        currBit;
    INT                        elapsedTimeMs;
-   U16                        currUsTime;
+   U32                        currMsMask;
 
 #define SWITCH_THRESH         16
 #define PWM_PERIOD            16
@@ -718,7 +729,11 @@ void digital_task(void)
       if ((gen2g_info.typeWingBrds & (1 << WING_SOL)) != 0)
       {
          /* Perform solenoid processing */
-         currUsTime = timer_get_us_count();
+         currMsMask = 1 << ((timer_get_ms_count() & 0xf) * 2);
+         if (timer_get_us_count() >= 500)
+         {
+            currMsMask <<= 1;
+         }
          for (index = 0, currBit = 1, solState_p = &dig_info.solState[0],
             solCfg_p = &gen2g_info.solDrvCfg_p->solCfg[0];
             index < RS232I_NUM_GEN2_SOL; index++, currBit <<= 1, solState_p++, solCfg_p++)
@@ -797,11 +812,11 @@ void digital_task(void)
                            }
                            else
                            {
-                              /* Grab pwmIntenDur */
+                              /* Grab holdIntenMask */
                               solState_p->solState = SOL_SUSTAIN_PWM;
-                              solState_p->pwmIntenDur =
-                                 FADE_USEC_DUR[(solCfg_p->minOffDuty & DUTY_CYCLE_MASK) << 1];
-                              if (currUsTime <= solState_p->pwmIntenDur)
+                              solState_p->holdIntenMask =
+                                 PWM_MASK[(((solCfg_p->minOffDuty & DUTY_CYCLE_MASK) - 1) * 2) + 1];
+                              if (currMsMask & solState_p->holdIntenMask)
                               {
                                  dig_info.outputUpd |= solState_p->bit;
                               }
@@ -820,7 +835,7 @@ void digital_task(void)
                      }
                      solState_p->startMs = timer_get_ms_count();
                   }
-                  else if (currUsTime <= solState_p->intenDur)
+                  else if (currMsMask & solState_p->kickIntenMask)
                   {
                      dig_info.outputUpd |= solState_p->bit;
                   }
@@ -837,7 +852,7 @@ void digital_task(void)
                if (!solState_p->clearRcvd)
                {
                   /* Do faster PWM function by testing us timer */
-                  if (currUsTime <= solState_p->pwmIntenDur)
+                  if (currMsMask & solState_p->holdIntenMask)
                   {
                      dig_info.outputUpd |= solState_p->bit;
                   }
@@ -888,7 +903,7 @@ void digital_task(void)
                   /* Switch is inactive, move to idle */
                   solState_p->solState = SOL_STATE_IDLE;
                }
-               else if (currUsTime <= solState_p->intenDur)
+               else if (currMsMask & solState_p->kickIntenMask)
                {
                   dig_info.outputUpd |= solState_p->bit;
                }
@@ -994,7 +1009,7 @@ void digital_set_kick_pwm(
 {
    if (solIndex < RS232I_NUM_GEN2_SOL)
    {
-      dig_info.solState[solIndex].intenDur = FADE_USEC_DUR[kickPwm];
+      dig_info.solState[solIndex].kickIntenMask = PWM_MASK[kickPwm & 0x1f];
    }
 } /* End digital_set_kick_pwm */
 
