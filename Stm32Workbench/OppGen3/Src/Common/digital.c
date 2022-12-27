@@ -163,6 +163,7 @@ typedef struct
    U32                        stateMask;
    U32                        outputUpd;
    U32                        outputMask;
+   U32                        solOutMask;
    DIG_PORT_DATA_T            updPort[STDLI_NUM_DIG_PORT];
    DIG_MATRIX_DATA_T          mtrxData;
    DIG_INP_STATE_T            inpState[RS232I_NUM_GEN2_INP];
@@ -219,6 +220,7 @@ void digital_init(void)
    GPIO_InitTypeDef           pinCfg;
    BOOL                       usedBit;
    INT                        input;
+   U32                        currBit;
 
 #define INPUT_BIT_MASK        0xff
 #define DBG_INPUT_BIT_MASK    0xfe
@@ -253,6 +255,7 @@ void digital_init(void)
       dig_info.solMask = 0;
       dig_info.filtInputs = 0;
       dig_info.mtrxInpMask = 0;
+      dig_info.solOutMask = 0;
      
       /* Set the location of the input configuration data */
       gen2g_info.inpCfg_p = (GEN2G_INP_CFG_T *)gen2g_info.freeCfg_p;
@@ -542,6 +545,16 @@ void digital_init(void)
          }
       }
       
+      /* Create solOutMask */
+      for (index = 0, solState_p = &dig_info.solState[0], currBit = 1;
+         index < RS232I_NUM_GEN2_SOL; index++, solState_p++, currBit <<= 1)
+      {
+         if ((dig_info.solMask & currBit) != 0)
+         {
+            dig_info.solOutMask |= solState_p->bit;
+         }
+      }
+
       /* Set up the initial state */
       digital_upd_sol_cfg((1 << RS232I_NUM_GEN2_SOL) - 1);
       digital_upd_inp_cfg(gen2g_info.inpMask);
@@ -734,23 +747,19 @@ void digital_task(void)
          {
             currMsMask <<= 1;
          }
+
+         /* Update sol output bits every time */
+         dig_info.outputMask |= dig_info.solOutMask;
          for (index = 0, currBit = 1, solState_p = &dig_info.solState[0],
             solCfg_p = &gen2g_info.solDrvCfg_p->solCfg[0];
             index < RS232I_NUM_GEN2_SOL; index++, currBit <<= 1, solState_p++, solCfg_p++)
          {
-            /* Update sol output bits every time */
-            if (solState_p->solState != SOL_STATE_IDLE)
-            {
-               dig_info.outputMask |= solState_p->bit;
-            }
-
             /* Check if processor is requesting a kick, or an input changed */
             if ((solState_p->solState == SOL_STATE_IDLE) &&
                ((gen2g_info.solDrvProcCtl & currBit) ||
                (updFilterLow & solState_p->inpBits)))
             {
                /* Check if processor is kicking normal solenoid */
-               dig_info.outputMask |= solState_p->bit;
                if ((solCfg_p->cfg & (ON_OFF_SOL | DLY_KICK_SOL)) == 0)
                {
                   /* Start the solenoid kick */
@@ -1051,7 +1060,6 @@ void digital_upd_sol_cfg(
       if ((updMask & currBit) != 0)
       {
          solState_p->solState = SOL_STATE_IDLE;
-         dig_info.outputMask |= solState_p->bit;
          solDrvCfg_p = &gen2g_info.solDrvCfg_p->solCfg[index];
          if (solDrvCfg_p->cfg & USE_SWITCH)
          {
