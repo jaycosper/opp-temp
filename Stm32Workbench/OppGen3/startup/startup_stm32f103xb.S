@@ -31,6 +31,8 @@
   .fpu softvfp
   .thumb
 
+#include "../Src/Common/versglob.h"
+
 .global g_pfnVectors
 .global Default_Handler
 
@@ -90,9 +92,9 @@ LoopFillZerobss:
   bcc FillZerobss
 
 /* Call the clock system intitialization function.*/
-    bl  SystemInit
+  bl  SystemInit
 /* Call static constructors */
-    bl __libc_init_array
+  bl __libc_init_array
 /* Call the application's entry point.*/
   bl main
   bx lr
@@ -133,8 +135,8 @@ g_pfnVectors:
   .word BusFault_Handler
   .word UsageFault_Handler
   .word 0
-  .word 0
-  .word 0
+  .word VERSG_CODE_VERS
+  .word (_app_crc32 - .isr_vector)
   .word 0
   .word SVC_Handler
   .word DebugMon_Handler

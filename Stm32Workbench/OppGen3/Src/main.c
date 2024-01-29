@@ -56,6 +56,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Common/stdtypes.h"
+#include "Common/versglob.h"
 #define GEN2G_INSTANTIATE
 #include "Common/gen2glob.h"
 #include "Common/neointf.h"
@@ -159,7 +160,7 @@ int main(void)
    MX_USB_DEVICE_Init();
 
    // HRS:  Start code here
-   appStart.codeVers = GEN2G_CODE_VERS;
+   appStart.codeVers = VERSG_CODE_VERS;
 
    /* Used for forcing the standard configuration onto the board.  If this is left on,
     * the programmed configuration will always be overwritten.

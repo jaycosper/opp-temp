@@ -519,7 +519,7 @@ def rcvGetVersResp(cardNum):
         print repr(data)
         return (1000)
     if (data[1] != rs232Intf.GET_VERS_CMD):
-        print "\nData = %d, expected = %d" % (ord(data[1]),ord(rs232Intf.READ_GEN2_INP_CMD))
+        print "\nData = %d, expected = %d" % (ord(data[1]),ord(rs232Intf.GET_VERS_CMD))
         print repr(data)
         return (1001)
     tmpData = [ data[0], data[1], data[2], data[3], data[4], data[5] ]

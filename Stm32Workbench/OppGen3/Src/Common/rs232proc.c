@@ -455,15 +455,14 @@ void rs232proc_task(void)
                      }
                      case RS232I_RESET:
                      {
-                        NVIC_SystemReset();
+         		scbBase_p->AIRCR = AIRCR_SYSRESETREQ;
                         break;
                      }
                      case RS232I_GO_BOOT:
                      {
                         /* This command resets the processor */
-#if 0
-                        /* HRS:  STM32 doesn't support bootloading */
-#endif
+                    	*(U32 *)SRAM_FIRST_ADDR = 0xdeadbeef;
+        		scbBase_p->AIRCR = AIRCR_SYSRESETREQ;
                         break;
                      }
                      case RS232I_CONFIG_SOL:

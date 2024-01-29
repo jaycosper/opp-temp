@@ -50,6 +50,7 @@
 #include "stdtypes.h"
 #include "stdlintf.h"
 #include "gen2glob.h"
+#include "versglob.h"
 
 /* Minimal configuration:  Only contains input configuration.
  */
@@ -132,7 +133,7 @@ void debug_save_nv_cfg()
    gen2g_info.nvCfgInfo.wingCfg[1] = WING_INP;
    gen2g_info.nvCfgInfo.wingCfg[2] = WING_INP;
    gen2g_info.nvCfgInfo.wingCfg[3] = WING_INP;
-   appStart.codeVers = GEN2G_CODE_VERS;
+   appStart.codeVers = VERSG_CODE_VERS;
    
    for (src_p = (U8 *)&cfg[0], dst_p = (U8 *)&gen2g_info.nvCfgInfo.cfgData;
       src_p < (U8 *)&cfg[0] + sizeof(cfg); )

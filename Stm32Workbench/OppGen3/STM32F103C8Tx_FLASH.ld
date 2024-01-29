@@ -62,12 +62,23 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 20K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 64K
+BOOT_FLASH (rx) : ORIGIN = 0x8000000, LENGTH = 4K
+FLASH (rx)      : ORIGIN = 0x8001000, LENGTH = 60K
 }
+
+TARGET(binary) /* specify file is binary format */
+INPUT(../../Booty/Debug/Booty.bin)
+OUTPUT_FORMAT(default) /* Restore the out file format */
 
 /* Define output sections */
 SECTIONS
 {
+  /* Load the bootloader section */
+  .booty :
+  {
+    ../../Booty/Debug/Booty.bin
+  } >BOOT_FLASH
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
@@ -145,6 +156,12 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM AT> FLASH
 
+  .app_crc32_sect :
+  {
+    . = ALIGN(4);
+    _app_crc32 = .;    /* create a global symbol to mark CRC32 location */
+    LONG(0)            /* Allocate flash location that will store CRC32 */
+  }  >FLASH
   
   /* Uninitialized data section */
   . = ALIGN(4);

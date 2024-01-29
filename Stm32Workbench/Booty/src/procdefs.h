@@ -56,70 +56,15 @@
  *===============================================================================
  */
 
-#ifndef PROCDEFS_H
-#define PROCDEFS_H
+#pragma once
 
-#include "stdtypes.h"
+#include <stdint.h>
 
 #define SRAM_FIRST_ADDR 0x20000000
 
-typedef struct TIMx
-{
-   R32 CR1;
-   R32 CR2;
-   R32 SMCR;
-   R32 DIER;
-   R32 SR;
-   R32 EGR;
-   R32 CCMR[2];
-   R32 CCER;
-   R32 CNT;
-   R32 PSC;
-   R32 ARR;
-   R32 Unused1;
-   R32 CCR[4];
-   R32 BDTR;
-   R32 DCR;
-   R32 DMAR;
-} TIMxRegs;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   TIMxRegs * volatile tim1Base_p
-#ifdef INSTANTIATE_PROC
-   = (TIMxRegs * volatile)0x40012c00
-#endif
-;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   TIMxRegs * volatile tim2Base_p
-#ifdef INSTANTIATE_PROC
-   = (TIMxRegs * volatile)0x40000000
-#endif
-;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   TIMxRegs * volatile tim3Base_p
-#ifdef INSTANTIATE_PROC
-   = (TIMxRegs * volatile)0x40000400
-#endif
-;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   TIMxRegs * volatile tim4Base_p
-#ifdef INSTANTIATE_PROC
-   = (TIMxRegs * volatile)0x40000800
-#endif
-;
-
-#define TIMx_SR_UIF   0x00000001
+typedef volatile uint8_t R8;
+typedef volatile uint16_t R16;
+typedef volatile uint32_t R32;
 
 typedef struct GPIOxRegs
 {
@@ -135,30 +80,11 @@ typedef struct GPIOxRegs
 #ifndef INSTANTIATE_PROC
 extern
 #endif
-   GPIOxRegs * volatile gpioABase_p
-#ifdef INSTANTIATE_PROC
-= (GPIOxRegs * volatile)0x40010800
-#endif
-;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   GPIOxRegs * volatile gpioBBase_p
-#ifdef INSTANTIATE_PROC
-= (GPIOxRegs * volatile)0x40010c00
-#endif
-;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
    GPIOxRegs * volatile gpioCBase_p
 #ifdef INSTANTIATE_PROC
 = (GPIOxRegs * volatile)0x40011000
 #endif
 ;
-
 
 typedef struct RCCRegs
 {
@@ -185,22 +111,7 @@ extern
 #endif
 ;
 
-typedef struct AFIORegs
-{
-   R32 EVCR;
-   R32 MAPR;
-   R32 EXTICR[4];
-   R32 MAPR2;
-} AFIORegs;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-   AFIORegs * volatile afioBase_p
-#ifdef INSTANTIATE_PROC
-   = (AFIORegs * volatile)0x40010000
-#endif
-;
+#define AHBENR_CRCEN     0x00000040
 
 typedef struct FlashRegs
 {
@@ -253,128 +164,57 @@ SCBRegs * volatile scbBase_p
 
 #define AIRCR_SYSRESETREQ 0x05fa0004
 
-typedef struct SPIx
+typedef struct UsbRegs
 {
-   R32 CR1;
-   R32 CR2;
-   R32 SR;
-   R32 DR;
-   R32 CRCPR;
-   R32 RXCRCR;
-   R32 TXCRCR;
-   R32 I2SCFGR;
-   R32 I2SPR;
-} SPIxRegs;
+  R16 EP0R;
+  R16 Unused1;
+  R16 EP1R;
+  R16 Unused2;
+  R16 EP2R;
+  R16 Unused3;
+  R16 EP3R;
+  R16 Unused4;
+  R16 EP4R;
+  R16 Unused5;
+  R16 EP5R;
+  R16 Unused6;
+  R16 EP6R;
+  R16 Unused7;
+  R16 EP7R;
+  R16 Unused8[17];
+  R16 CNTR;
+  R16 Unused9;
+  R16 ISTR;
+  R16 Unused10;
+  R16 FNR;
+  R16 Unused11;
+  R16 DADDR;
+  R16 Unused12;
+  R16 BTABLE;
+  R16 Unused13;
+} UsbRegs;
 
 #ifndef INSTANTIATE_PROC
 extern
 #endif
-SPIxRegs * volatile spi1Base_p
+UsbRegs * volatile usbBase_p
 #ifdef INSTANTIATE_PROC
-= (SPIxRegs * volatile)0x40013000
+= (UsbRegs * volatile)0x40005c00
 #endif
 ;
 
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-SPIxRegs * volatile spi2Base_p
-#ifdef INSTANTIATE_PROC
-= (SPIxRegs * volatile)0x40003800
-#endif
-;
-
-#define SPIx_CR1_SPE      0x00000040
-#define SPIx_CR1_BR_16    0x00000018
-#define SPIx_CR1_BR_8     0x00000010
-#define SPIx_CR1_SSM      0x00000200
-#define SPIx_CR1_SSI      0x00000100
-#define SPIx_CR1_MSTR     0x00000004
-#define SPIx_CR1_CPOL     0x00000002
-#define SPIx_CR1_CPHA     0x00000001
-#define SPIx_CR2_TXDMAEN  0x00000002
-
-typedef struct DMAx
+typedef struct CrcRegs
 {
-   R32 ISR;
-   R32 IFCR;
-   R32 CCR1;
-   R32 CNDTR1;
-   R32 CPAR1;
-   R32 CMAR1;
-   R32 Unused1;
-   R32 CCR2;
-   R32 CNDTR2;
-   R32 CPAR2;
-   R32 CMAR2;
-   R32 Unused2;
-   R32 CCR3;
-   R32 CNDTR3;
-   R32 CPAR3;
-   R32 CMAR3;
-   R32 Unused3;
-   R32 CCR4;
-   R32 CNDTR4;
-   R32 CPAR4;
-   R32 CMAR4;
-   R32 Unused4;
-   R32 CCR5;
-   R32 CNDTR5;
-   R32 CPAR5;
-   R32 CMAR5;
-   R32 Unused5;
-   R32 CCR6;
-   R32 CNDTR6;
-   R32 CPAR6;
-   R32 CMAR6;
-   R32 Unused6;
-   R32 CCR7;
-   R32 CNDTR7;
-   R32 CPAR7;
-   R32 CMAR7;
-   R32 Unused7;
-} DMAxRegs;
+  R32 DR;
+  R32 IDR;
+  R32 CR;
+} CrcRegs;
 
 #ifndef INSTANTIATE_PROC
 extern
 #endif
-DMAxRegs * volatile dma1Base_p
+CrcRegs * volatile crcBase_p
 #ifdef INSTANTIATE_PROC
-= (DMAxRegs * volatile)0x40020000
+= (CrcRegs * volatile)0x40023000
 #endif
 ;
-
-#ifndef INSTANTIATE_PROC
-extern
-#endif
-DMAxRegs * volatile dma2Base_p
-#ifdef INSTANTIATE_PROC
-= (DMAxRegs * volatile)0x40020400
-#endif
-;
-
-#define DMAx_ISR_TEIF5    0x00080000
-#define DMAx_ISR_TCIF5    0x00020000
-#define DMAx_ISR_TEIF3    0x00000800
-#define DMAx_ISR_TCIF3    0x00000200
-
-#define DMAx_CCR_PSIZE16  0x00000100
-#define DMAx_CCR_MINC     0x00000080
-#define DMAx_CCR_DIR      0x00000010
-#define DMAx_CCR_EN       0x00000001
-
-#define EnableInterrupts         do                      \
-                                 {                       \
-                                    __asm("CPSIE   i");  \
-                                 } while ( 0 )
-
-#define DisableInterrupts        do                      \
-                                 {                       \
-                                    __asm("CPSID   i");  \
-                                 } while ( 0 )
-
-void Bootloadable_Load();
-   
-#endif
-
-/* [] END OF FILE */

@@ -19,12 +19,12 @@
  *               PPP     OOOOOOOOOO     PPP
  *              PPPPP      OOOOOO      PPPPP
  *
- * @file:   stdtypes.h
+ * @file:   versglob.h
  * @author: Hugh Spahr
- * @date:   9/17/2015
+ * @date:   1/12/2024
  *
  * @note:   Open Pinball Project
- *          Copyright© 2015, Hugh Spahr
+ *          Copyright� 2015-2024, Hugh Spahr
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,34 +42,14 @@
  *===============================================================================
  */
 /**
- * This is the standard types file.  It has processor agnostic definitions
- * so code is more portable.
+ * Global file to define the version of the code.  Separated so it can be
+ *  included in the assembly file
  *
  *===============================================================================
  */
-#ifndef STDTYPES_H
-#define STDTYPES_H
+#ifndef VERSGLOB_H
+#define VERSGLOB_H
+ 
+#define VERSG_CODE_VERS                0x02040001
 
-typedef unsigned char U8;
-typedef unsigned short U16;
-typedef unsigned long U32;
-typedef int INT;
-typedef unsigned int UINT;
-typedef volatile unsigned char R8;
-typedef volatile unsigned long R32;
-
-#define MAX_U8          0xff
-#define MAX_U16         0xffff
-#define MAX_U32         0xffffffff
-
-#define NULL ((void *)0)
-
-typedef enum
-{
-   FALSE                   = 0,
-   TRUE                    = !FALSE
-} __attribute__((packed)) BOOL;
-   
 #endif
-    
-/* [] END OF FILE */
