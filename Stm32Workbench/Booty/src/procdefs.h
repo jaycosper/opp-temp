@@ -80,9 +80,9 @@ typedef struct GPIOxRegs
 #ifndef INSTANTIATE_PROC
 extern
 #endif
-   GPIOxRegs * volatile gpioCBase_p
+   GPIOxRegs * volatile gpioBBase_p
 #ifdef INSTANTIATE_PROC
-= (GPIOxRegs * volatile)0x40011000
+= (GPIOxRegs * volatile)0x40010c00
 #endif
 ;
 

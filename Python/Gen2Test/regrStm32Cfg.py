@@ -50,40 +50,40 @@
 
 testVers = '00.00.02'
 
-import rs232Intf
+import rs232BIntf
 
 # Config inputs as all state inputs
-wingCfg = [ [ rs232Intf.WING_NEO, rs232Intf.WING_SOL, rs232Intf.WING_INP, rs232Intf.WING_INCAND ] ]
+wingCfg = [ [ rs232BIntf.WING_NEO, rs232BIntf.WING_SOL, rs232BIntf.WING_INP, rs232BIntf.WING_INCAND ] ]
 
 # Config inputs as all state inputs
-inpCfg = [ [ rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, \
-             rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE, rs232Intf.CFG_INP_STATE ] ]
+inpCfg = [ [ rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, \
+             rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE, rs232BIntf.CFG_INP_STATE ] ]
 
 # solenoid config
-solCfg  = [ [ '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', \
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', \
-                rs232Intf.CFG_SOL_USE_SWITCH, '\x30', '\x04', rs232Intf.CFG_SOL_USE_SWITCH, '\x30', '\x04', \
-                rs232Intf.CFG_SOL_USE_SWITCH, '\x20', '\x00', rs232Intf.CFG_SOL_USE_SWITCH, '\x20', '\x00', \
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', \
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', \
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', \
-                '\x00', '\x00', '\x00', '\x00', '\x00', '\x00' ] ]
+solCfg  = [ [ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                rs232BIntf.CFG_SOL_USE_SWITCH, 0x30, 0x04, rs232BIntf.CFG_SOL_USE_SWITCH, 0x30, 0x04, \
+                rs232BIntf.CFG_SOL_USE_SWITCH, 0x20, 0x00, rs232BIntf.CFG_SOL_USE_SWITCH, 0x20, 0x00, \
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ] ]
 
 # Config color table
 #              bytesPerPxl (1 byte), numPixels (1 byte, if 0, then 256 pixels), unused (95 bytes) 
-colorCfg = [ [ '\x03', '\x08', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', '\xff', \
-               '\xff', \
+colorCfg = [ [ 0x03, 0x08, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+               0xff, \
             ] ]

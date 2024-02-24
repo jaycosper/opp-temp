@@ -379,14 +379,12 @@ void booty_verify_app()
 
 #define MAX_U32 0xffffffff
 
-    /* Check for stay in boot condition, either PA13 held low during boot
+    /* Check for stay in boot condition, either PB2 held high during boot
      * or the first SRAM address set to 0xdeadbeef.
      */
-    rccBase_p->APB2ENR = 0x00000010;
-    gpioCBase_p->ODR = 0x00002000;
-    gpioCBase_p->CRH = 0x44844444;
+    rccBase_p->APB2ENR = 0x00000008;
     if ((*(uint32_t *)SRAM_FIRST_ADDR == 0xdeadbeef) ||
-      ((gpioCBase_p->IDR & 0x00002000) == 0))
+      ((gpioBBase_p->IDR & 0x00000004) == 0x00000004))
     {
     	*(uint32_t *)SRAM_FIRST_ADDR = 0;
     }

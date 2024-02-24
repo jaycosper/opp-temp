@@ -1,10 +1,62 @@
 #!/usr/bin/env python
+#
+#===============================================================================
+#
+#                         OOOO
+#                       OOOOOOOO
+#      PPPPPPPPPPPPP   OOO    OOO   PPPPPPPPPPPPP
+#    PPPPPPPPPPPPPP   OOO      OOO   PPPPPPPPPPPPPP
+#   PPP         PPP   OOO      OOO   PPP         PPP
+#  PPP          PPP   OOO      OOO   PPP          PPP
+#  PPP          PPP   OOO      OOO   PPP          PPP
+#  PPP          PPP   OOO      OOO   PPP          PPP
+#   PPP         PPP   OOO      OOO   PPP         PPP
+#    PPPPPPPPPPPPPP   OOO      OOO   PPPPPPPPPPPPPP
+#     PPPPPPPPPPPPP   OOO      OOO   PPP
+#               PPP   OOO      OOO   PPP
+#               PPP   OOO      OOO   PPP
+#               PPP   OOO      OOO   PPP
+#               PPP    OOO    OOO    PPP
+#               PPP     OOOOOOOO     PPP
+#              PPPPP      OOOO      PPPPP
+#
+# @file:   updApp.py
+# @author: Hugh Spahr
+# @date:   2/5/2024
+#
+# @note:   Open Pinball Project
+#          Copyright 2024, Hugh Spahr
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#===============================================================================
+#
+# Update application using the Booty bootloader.  Tested on Windows/Ubuntu
+# based hosts and Python 2.7.x and Python 3.12.x
+#
+#===============================================================================
+
 import sys
 import os
 import struct
 import serial
 import time
-import usb
+import platform
+if (platform.system() == 'Windows'):
+  import subprocess
+else:
+  import usb
 
 IHEX_DATA = 0x00
 IHEX_END = 0x01
@@ -12,6 +64,9 @@ IHEX_EXT_ADDR = 0x04
 IHEX_START_ADDR = 0x05
 
 APP_START_ADDR = 0x08001000
+APP_MAX_LEN = 0xf000
+SRAM_ADDR = 0x20000000
+SRAM_LEN = 0x5000
 
 # application commands
 BOARD_ADDR = 0x20
@@ -45,14 +100,7 @@ CRC8ByteLookup = \
     0xde, 0xd9, 0xd0, 0xd7, 0xc2, 0xc5, 0xcc, 0xcb, 0xe6, 0xe1, 0xe8, 0xef, 0xfa, 0xfd, 0xf4, 0xf3 ]
 
 #calculate a crc8
-def calcCrc8Chars(msgChars):
-  crc8Byte = 0xff
-  for indChar in msgChars:
-    indInt = ord(indChar)
-    crc8Byte = CRC8ByteLookup[crc8Byte ^ indInt];
-  return (chr(crc8Byte))
-
-def calcCrc8Ints(msgInts):
+def calcCrc8(msgInts):
   crc8Byte = 0xff
   for indInt in msgInts:
     crc8Byte = CRC8ByteLookup[crc8Byte ^ indInt];
@@ -84,11 +132,19 @@ def main(argv=None):
     elif arg.startswith('-boot'):
       inBoot = True
 
+  if ('COM' in portName) and (not (platform.system() == 'Windows')):
+    print ("Windows detected and serial port does not contain COM.  ({})".format(portName))
+    print ("This is probably wrong.\n")
+    end = True
+  if ((platform.system() != 'Windows') and (os.geteuid() != 0)):
+    print ("Linux detected and user doesn't seem to have sudo priveleges.")
+    print ("Please rerun script with sudo.\n")
+    end = True
   if (end or (hexFileName == "")):
     print ("python updApp.py [OPTIONS]")
     print ("       -?  Options help")
     print ("       -hex=hexFileName  Input intel hex file name (probably ends in .hex)")
-    print ("       -port=portName    COM port number, defaults to /dev/ttyACM0")
+    print ("       -port=portName    serial port, defaults to /dev/ttyACM0")
     print ("       -boot             Board is in bootloader, so don't switch to boot from app")
     return 0
 
@@ -96,26 +152,26 @@ def main(argv=None):
     print ("HexFile - {} does not exist".format(hexFileName))
     return 1
 
-  # Get the USB port number (needed for the unbind/rebind for reconnecting to bootloader
-  #  Note:  Finding all USB buses containing vendorId/productId because correlating
-  #    the serial port to a USB bus would require another installed library
-  print ("Locating USB bus number")
-  bootFoundBusNum = False
   bootBusNumLst = []
-  busses = usb.busses()
-  for bus in busses:
-    devices = bus.devices
-    for dev in devices:
-      if (dev.dev.idVendor == 0x0483) and (dev.dev.idProduct == 0x5740):
-        bootBusNumLst.append("usb{}".format(bus.location))
-        bootFoundBusNum = True
-  if not bootFoundBusNum:
-    print ("Could not locate USB bus number")
-    return 1
+  if (platform.system() != 'Windows'):
+    # Get the USB port number (needed for the unbind/rebind for reconnecting to bootloader
+    #  Note:  Finding all USB buses containing vendorId/productId because correlating
+    #    the serial port to a USB bus would require another installed library
+    print ("Locating USB bus number")
+    bootFoundBusNum = False
+    busses = usb.busses()
+    for bus in busses:
+      devices = bus.devices
+      for dev in devices:
+        if (dev.dev.idVendor == 0x0483) and (dev.dev.idProduct == 0x5740):
+          bootBusNumLst.append("usb{}".format(bus.location))
+          bootFoundBusNum = True
+    if not bootFoundBusNum:
+      print ("Could not locate USB bus number")
+      return 1
 
-  # Remove duplicates if they exist
-  bootBusNumLst = list(set(bootBusNumLst))
-
+    # Remove duplicates if they exist
+    bootBusNumLst = list(set(bootBusNumLst))
 
   currFirm = ""
   if (not inBoot):
@@ -131,7 +187,7 @@ def main(argv=None):
     # synchronizes the serial port if it contains data from previous commands
     ser.read(100)
     cmdArr = [BOARD_ADDR, GET_VERS_CMD, 0x00, 0x00, 0x00, 0x00]
-    cmdArr.append(calcCrc8Ints(cmdArr))
+    cmdArr.append(calcCrc8(cmdArr))
     cmdArr.append(EOM_CMD)
     numTries = 0
     commsGood = False
@@ -149,7 +205,7 @@ def main(argv=None):
       respInt = struct.unpack('{}B'.format(len(resp)), resp)
       if ((len(respInt) >= 8) and (respInt[0] == BOARD_ADDR) and (respInt[1] == GET_VERS_CMD) and (respInt[7] == EOM_CMD)):
         tmpData = [ respInt[0], respInt[1], respInt[2], respInt[3], respInt[4], respInt[5] ]
-        crc8 = calcCrc8Ints(tmpData)
+        crc8 = calcCrc8(tmpData)
         if (respInt[6] == crc8):
           currFirm = "{0}.{1}.{2}.{3}".format(respInt[2], respInt[3], respInt[4], respInt[5])
           commsGood = True
@@ -165,7 +221,7 @@ def main(argv=None):
     print ("\nFirmware is currently version: {}".format(currFirm))
 
   # Allocate maximum memory for allocation
-  appMem = bytearray(b'\xff') * 0xf000
+  appMem = bytearray(b'\xff') * APP_MAX_LEN
   maxAddr = 0
 
   print ("\nProcessing {}...".format(hexFileName))
@@ -204,6 +260,12 @@ def main(argv=None):
         if (currOff >= 0):
           if (maxOff < currOff + hexLen):
             maxOff = currOff + hexLen
+            if (maxOff > APP_MAX_LEN):
+              print ("Application too large (only support 60K appse) on line {0} of {1}.  Line = \"{2}\"" \
+                .format(lineNum, "0x%02x" % hexCmd, line))
+              if (not inBoot):
+                ser.close()
+              return 1
           for x in range(hexLen):
             appMem[currOff + x] = byteArr[x + 4]
       elif ((hexCmd == IHEX_END) or (hexCmd == IHEX_START_ADDR)):
@@ -215,6 +277,24 @@ def main(argv=None):
           ser.close()
         return 1
 
+  # Do a quick sanity check to insure application is valid
+  appInitStack = (appMem[3] << 24) | (appMem[2] << 16) | (appMem[1] << 8) | appMem[0]
+  if (appInitStack < SRAM_ADDR) or (appInitStack > SRAM_ADDR + SRAM_LEN):
+    print ("Application {0} has bad init stack ptr in exception table = {1}" \
+      .format(hexFileName, "0x%08x" % appInitStack))
+    print ("\n!!! Application does not support bootloading.  Aborting update. !!!")
+    if (not inBoot):
+      ser.close()
+    return 1
+  appInitPc = (appMem[7] << 24) | (appMem[6] << 16) | (appMem[5] << 8) | appMem[4]
+  if (appInitPc < APP_START_ADDR) or (appInitPc > APP_START_ADDR + APP_MAX_LEN):
+    print ("Application {0} has bad init program counter in exception table = {1}" \
+      .format(hexFileName, "0x%08x" % appInitPc))
+    print ("\n!!! Application does not support bootloading.  Aborting update. !!!")
+    if (not inBoot):
+      ser.close()
+    return 1
+
   # Extract new app firmware version
   newFirm = "{0}.{1}.{2}.{3}".format(appMem[35], appMem[34], appMem[33], appMem[32])
   print ("New firmware version: {}".format(newFirm))
@@ -223,39 +303,77 @@ def main(argv=None):
     # Transition to bootloader
     print ("Transitioning to bootloader")
     cmdArr = [BOARD_ADDR, GO_BOOT_CMD]
-    cmdArr.append(calcCrc8Ints(cmdArr))
+    cmdArr.append(calcCrc8(cmdArr))
     ser.write(cmdArr)
     ser.close()
     time.sleep(1)
 
     # Unbind the USB hub port
     print ("Unbinding USB port")
-    for usbBusNum in bootBusNumLst:
-      try:
-        with open("/sys/bus/usb/drivers/usb/unbind", 'w') as unbindFile:
-          unbindFile.write(usbBusNum)
-      except IOError:
-        print ("Could not open unbind file")
+    if (platform.system() != 'Windows'):
+      for usbBusNum in bootBusNumLst:
+        try:
+          with open("/sys/bus/usb/drivers/usb/unbind", 'w') as unbindFile:
+            unbindFile.write(usbBusNum)
+        except IOError:
+          print ("Could not open unbind file")
+          return 1
+      
+      time.sleep(1)
+
+      # Bind the USB hub port
+      print ("Binding USB port")
+      for usbBusNum in bootBusNumLst:
+        try:
+          with open("/sys/bus/usb/drivers/usb/bind", 'w') as bindFile:
+            bindFile.write(usbBusNum)
+        except IOError:
+          print ("Could not open bind file")
+          return 1
+    else:
+      # Windows unbind/rebind using pnputil.exe
+      print ("Finding USB parent device id")
+      outputStr = subprocess.check_output(['pnputil.exe', '/enum-devices', '/connected', '/class', 'ports', '/relations']).decode('UTF-8')
+      outputStr = outputStr.replace('\r', '')
+      outputLines = outputStr.split('\n')
+      parentDeviceId = ""
+      for line in outputLines:
+        if line.startswith("Device Description:"):
+          # Check if correct COM port
+          if ("(" + portName + ")") in line:
+            foundDevice = True
+          else:
+            foundDevice = False
+        elif line.startswith("Parent:") and foundDevice:
+          # Store parent device id
+          parentDeviceId = line.strip().split()[1]
+      if (parentDeviceId == ""):
+        print ("Could not find parent device Id")
         return 1
+      print ("Restarting USB parent")
+      outputStr = subprocess.check_output(['pnputil.exe', '/restart-device', parentDeviceId])
+      time.sleep(3)
+      print ("Finding redescribed port number")
+      outputStr = subprocess.check_output(['pnputil.exe', '/enum-devices', '/connected', '/class', 'ports', '/relations']).decode('UTF-8')
+      outputStr = outputStr.replace('\r', '')
+      outputLines = outputStr.split('\n')
+      currDeviceDesc = ""
+      for line in outputLines:
+        if line.startswith("Device Description:"):
+          currDeviceDesc = line.strip()
+        elif line.startswith("Parent:"):
+          if (line.strip().split()[1] == parentDeviceId):
+            # Find the new COM port by extracting between parenthesis
+            portName = currDeviceDesc.split('(')[1].split(')')[0]
+            print ("Found new port name {}".format(portName))          
   
-    time.sleep(1)
-
-    # Bind the USB hub port
-    print ("Binding USB port")
-    for usbBusNum in bootBusNumLst:
-      try:
-        with open("/sys/bus/usb/drivers/usb/bind", 'w') as bindFile:
-          bindFile.write(usbBusNum)
-      except IOError:
-        print ("Could not open bind file")
-        return 1
-
-    time.sleep(5)
+  time.sleep(5)
 
   # Opening boot serial port 
   print ("Opening bootloader serial port")
   try:
-    ser=serial.Serial(portName, baudrate=115200, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
+    ser=serial.Serial(portName, baudrate=115200, bytesize=serial.EIGHTBITS, \
+      parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
   except serial.SerialException:
     print ("Could not open bootloader serial port: {}".format(portName))
     return 1
@@ -272,7 +390,8 @@ def main(argv=None):
       resp = ser.read(32)
     except serial.SerialException:
       # Second read from a newly opened serial port can throw a
-      # SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+      # SerialException: device reports readiness to read but returned no data
+      #   (device disconnected or multiple access on port?)
       # Ignore the exception
       print ("Ignoring thrown exception")
     if ((len(resp) == 8) and (resp == b"Boot0.0\r")):
@@ -302,7 +421,7 @@ def main(argv=None):
       ((APP_START_ADDR + x) >> 8) & 0xff, (APP_START_ADDR + x) & 0xff, \
       appMem[x + 3], appMem[x + 2], appMem[x + 1], appMem[x], \
       appMem[x + 7], appMem[x + 6], appMem[x + 5], appMem[x + 4]]
-    cmdArr.append(calcCrc8Ints(cmdArr[1:]))
+    cmdArr.append(calcCrc8(cmdArr[1:]))
     ser.write(cmdArr)
     resp = ser.read(6)
     respInt = struct.unpack('{}B'.format(len(resp)), resp)
@@ -327,32 +446,53 @@ def main(argv=None):
 
   # Unbind the USB hub port
   print ("Unbinding USB port")
-  for usbBusNum in bootBusNumLst:
-    try:
-      with open("/sys/bus/usb/drivers/usb/unbind", 'w') as unbindFile:
-        unbindFile.write(usbBusNum)
-    except IOError:
-      print ("Could not open unbind file")
-      return 1
-  
-  time.sleep(1)
+  if (platform.system() != 'Windows'):
+    for usbBusNum in bootBusNumLst:
+      try:
+        with open("/sys/bus/usb/drivers/usb/unbind", 'w') as unbindFile:
+          unbindFile.write(usbBusNum)
+      except IOError:
+        print ("Could not open unbind file")
+        return 1
+    
+    time.sleep(1)
 
-  # Bind the USB hub port
-  print ("Binding USB port")
-  for usbBusNum in bootBusNumLst:
-    try:
-      with open("/sys/bus/usb/drivers/usb/bind", 'w') as bindFile:
-        bindFile.write(usbBusNum)
-    except IOError:
-      print ("Could not open bind file")
-      return 1
+    # Bind the USB hub port
+    print ("Binding USB port")
+    for usbBusNum in bootBusNumLst:
+      try:
+        with open("/sys/bus/usb/drivers/usb/bind", 'w') as bindFile:
+          bindFile.write(usbBusNum)
+      except IOError:
+        print ("Could not open bind file")
+        return 1
+  else:
+    # Windows unbind/rebind using pnputil.exe
+    print ("Restarting USB parent")
+    outputStr = subprocess.check_output(['pnputil.exe', '/restart-device', parentDeviceId])
+    time.sleep(3)
+    print ("Finding redescribed port number")
+    outputStr = subprocess.check_output(['pnputil.exe', '/enum-devices', '/connected', \
+      '/class', 'ports', '/relations']).decode('UTF-8')
+    outputStr = outputStr.replace('\r', '')
+    outputLines = outputStr.split('\n')
+    currDeviceDesc = ""
+    for line in outputLines:
+      if line.startswith("Device Description:"):
+        currDeviceDesc = line.strip()
+      elif line.startswith("Parent:"):
+        if (line.strip().split()[1] == parentDeviceId):
+          # Find the new COM port by extracting between parenthesis
+          portName = currDeviceDesc.split('(')[1].split(')')[0]
+          print ("Found new port name {}".format(portName))          
 
   time.sleep(5)
 
-  # Opening boot serial port 
+  # Opening application serial port 
   print ("Opening application serial port")
   try:
-    ser=serial.Serial(portName, baudrate=115200, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
+    ser=serial.Serial(portName, baudrate=115200, bytesize=serial.EIGHTBITS, \
+      parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1)
   except serial.SerialException:
     print ("Could not open app serial port: {}".format(portName))
     return 1
@@ -362,7 +502,7 @@ def main(argv=None):
   # synchronizes the serial port if it contains data from previous commands
   resp = ser.read(100)
   cmdArr = [BOARD_ADDR, GET_VERS_CMD, 0x00, 0x00, 0x00, 0x00]
-  cmdArr.append(calcCrc8Ints(cmdArr))
+  cmdArr.append(calcCrc8(cmdArr))
   cmdArr.append(EOM_CMD)
   numTries = 0
   commsGood = False
@@ -375,13 +515,14 @@ def main(argv=None):
       resp = ser.read(100)
     except serial.SerialException:
       # Second read from a newly opened serial port can throw a
-      # SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+      # SerialException: device reports readiness to read but returned no data
+      #   (device disconnected or multiple access on port?)
       # Ignore the exception
       print ("Ignoring thrown exception")
     respInt = struct.unpack('{}B'.format(len(resp)), resp)
     if ((len(respInt) == 8) and (respInt[0] == BOARD_ADDR) and (respInt[1] == GET_VERS_CMD) and (respInt[7] == EOM_CMD)):
       tmpData = [ respInt[0], respInt[1], respInt[2], respInt[3], respInt[4], respInt[5] ]
-      crc8 = calcCrc8Ints(tmpData)
+      crc8 = calcCrc8(tmpData)
       if (respInt[6] == crc8):
         currFirm = "{0}.{1}.{2}.{3}".format(respInt[2], respInt[3], respInt[4], respInt[5])
         commsGood = True
