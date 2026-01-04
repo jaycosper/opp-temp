@@ -77,7 +77,7 @@ SECTIONS
   .booty :
   {
     . = ALIGN(4);
-   *(@BOOTLOADER_BIN_PATH@)   /* This references the file from INPUT() */
+   "@BOOTLOADER_BIN_PATH@"; /* Bootloader built binary */
     . = ALIGN(4);
   } >BOOT_FLASH
 

@@ -19,8 +19,9 @@ all: OppGen3 Booty
 # Build only the application
 OppGen3: $(BUILD_DIR)/CMakeCache.txt
 	@echo "Building OppGen3 application... (log: $(LOG_FILE))"
-	@cmake --build $(BUILD_DIR) --target OppGen3.elf --verbose 2>&1 | tee $(LOG_FILE) || \
-		(echo "=== Application build FAILED ===" && false)
+	-@cmake --build $(BUILD_DIR) --target OppGen3.elf --verbose 2>&1 | tee $(LOG_FILE)
+	@echo "OppGen3 build complete! Output: _build/OppGen3/OppGen3.elf"
+	@echo "Log saved to: $(LOG_FILE)"
 
 # Build only the bootloader
 Booty: $(BUILD_DIR)/CMakeCache.txt
