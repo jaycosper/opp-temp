@@ -59,6 +59,9 @@ clean-logs:
 # Full clean rebuild
 rebuild: clean clean-logs cmake-setup all
 
+lint:
+	@cmake --build $(BUILD_DIR) --target lint
+
 # Help
 help:
 	@echo "Available targets:"

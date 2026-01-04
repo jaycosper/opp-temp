@@ -11,6 +11,7 @@ include(${TARGET_NAME}.cmake)
 
 add_executable(${TARGET_ELF}
     ${APP_SOURCES}
+    ${APP_MIDDLEWARE_SOURCES}
     ${APP_HAL_SOURCES}
     ${APP_CMSIS_SOURCES}
 )
@@ -52,12 +53,15 @@ target_link_options(${TARGET_ELF} PRIVATE
     -Wl,-Map=${TARGET_MAP}
 )
 
+# Make sure the bootloader binary exists before linking the app
+#add_dependencies(OppGen3.elf Booty.elf) # not yet...
+
 add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex   ${TARGET_ELF} ${TARGET_HEX}
     COMMAND ${CMAKE_OBJCOPY} -O binary ${TARGET_ELF} ${TARGET_BIN}
 
     # Custom CRC update (requires python2 or python3)
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/updCrc.py
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/updCrc.py
             -hex=${TARGET_HEX}
             -crc=crc32.bin
 
@@ -68,3 +72,11 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
 
     COMMENT "Generated hex/bin, updated CRC, and printed size"
 )
+
+# Not yet
+# # Copy artifacts to known location
+# add_custom_command(TARGET Booty.elf POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy
+#         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BIN}
+#         ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_BIN}-TBD.bin   # Fixed known location
+# )
