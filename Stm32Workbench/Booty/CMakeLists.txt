@@ -10,14 +10,14 @@ set(TARGET_MAP  ${TARGET_NAME}.map)
 include(${TARGET_NAME}.cmake)
 
 add_executable(${TARGET_ELF}
-    ${APP_SOURCES}
-    ${APP_HAL_SOURCES}
-    ${APP_CMSIS_SOURCES}
+    ${BL_SOURCES}
+    ${BL_HAL_SOURCES}
+    ${BL_CMSIS_SOURCES}
 )
 
 # === Target-specific compile definitions ===
 target_compile_definitions(${TARGET_ELF} PRIVATE
-    ${APP_DEFINITIONS}   # Expands to APP_DEFINITIONS or BOOT_DEFINITIONS
+    ${BL_DEFINITIONS}   # Expands to APP_DEFINITIONS or BOOT_DEFINITIONS
 )
 
 target_compile_options(${TARGET_ELF} PRIVATE
@@ -25,8 +25,8 @@ target_compile_options(${TARGET_ELF} PRIVATE
     -fdata-sections
     -ffunction-sections
     -Wall
+    -Werror
     -Wextra
-    # -Werror # Not yet...
 
     $<$<CONFIG:Debug>:-Og -g3 -gdwarf-4>
     $<$<CONFIG:Release>:-Os>
@@ -34,37 +34,18 @@ target_compile_options(${TARGET_ELF} PRIVATE
 
 # === Target-specific include directories ===
 target_include_directories(${TARGET_ELF} PRIVATE
-    Inc
-    Drivers/STM32F1xx_HAL_Driver/Inc
-    Drivers/STM32F1xx_HAL_Driver/Inc/Legacy
-    Middlewares/ST/STM32_USB_Device_Library/Core/Inc
-    Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
-    Drivers/CMSIS/Device/ST/STM32F1xx/Include
-    Drivers/CMSIS/Include
+    inc
+    src
 )
 
 target_link_options(${TARGET_ELF} PRIVATE
-    -T${APP_LINKER_SCRIPT}
-    -specs=nosys.specs
-    -specs=nano.specs
-    -Wl,--gc-sections
-    -Wl,--print-memory-usage
+    -T${BL_LINKER_SCRIPT}
     -Wl,-Map=${TARGET_MAP}
 )
 
 add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex   ${TARGET_ELF} ${TARGET_HEX}
     COMMAND ${CMAKE_OBJCOPY} -O binary ${TARGET_ELF} ${TARGET_BIN}
-
-    # Custom CRC update (requires python2 or python3)
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/updCrc.py
-            -hex=${TARGET_HEX}
-            -crc=crc32.bin
-
-    # Inject CRC into ELF section
-    COMMAND ${CMAKE_OBJCOPY} --update-section .app_crc32_sect=crc32.bin ${TARGET_ELF}
-
     COMMAND ${CMAKE_SIZE} ${TARGET_ELF}
-
-    COMMENT "Generated hex/bin, updated CRC, and printed size"
+    COMMENT "Generating ${TARGET_HEX} and ${TARGET_BIN}"
 )
