@@ -91,7 +91,7 @@ inline static volatile uint16_t *EPR(uint8_t ep) {
  * \note PMA buffers grown from top to bottom like stack.
  */
 static uint16_t get_next_pma(uint16_t sz) {
-    unsigned _result = USB_PMASIZE;
+    int _result = USB_PMASIZE;
     for (int i = 0; i < 8; i++) {
         pma_table *tbl = EPT(i);
         if ((tbl->tx.addr) && (tbl->tx.addr < _result)) _result = tbl->tx.addr;
@@ -150,7 +150,7 @@ static bool ep_isstalled(uint8_t ep) {
     }
 }
 
-static uint8_t connect(bool connect) {
+static uint8_t connect(bool connect __attribute__((unused))) {
     return usbd_lane_unk;
 }
 

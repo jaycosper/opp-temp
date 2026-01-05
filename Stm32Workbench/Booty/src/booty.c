@@ -81,7 +81,7 @@
 
 uint8_t     bootyState = BOOTY_STATE_LOOK_FOR_STX;
 uint32_t    rxAddr;
-int         rxIndex;
+uint32_t    rxIndex;
 uint8_t     txBuf[BOOTY_MAX_TX_DATA_SZ];
 
 typedef struct
@@ -178,7 +178,7 @@ void booty_calc_crc32(
    uint32_t                length,
    uint32_t                *crc_p)
 {
-   int                     index;
+   uint32_t                index;
 
    // Enable CRC clock and reset CRC
    rccBase_p->AHBENR |= AHBENR_CRCEN;

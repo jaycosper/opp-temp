@@ -29,7 +29,7 @@ target_compile_options(${TARGET_ELF} PRIVATE
     -flto
     -Wall
     -Wextra
-    # -Werror # not yet...
+    -Werror
 )
 
 # === Target-specific include directories ===

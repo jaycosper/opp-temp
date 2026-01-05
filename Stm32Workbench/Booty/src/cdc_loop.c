@@ -215,7 +215,7 @@ static usbd_respond cdc_getdesc (usbd_ctlreq *req, void **address, uint16_t *len
 }
 
 
-static usbd_respond cdc_control(usbd_device *dev, usbd_ctlreq *req, usbd_rqc_callback *callback) {
+static usbd_respond cdc_control(usbd_device *dev, usbd_ctlreq *req, usbd_rqc_callback *callback __attribute__((unused))) {
     if (((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) == (USB_REQ_INTERFACE | USB_REQ_CLASS)
         && req->wIndex == 0 ) {
         switch (req->bRequest) {
@@ -225,7 +225,7 @@ static usbd_respond cdc_control(usbd_device *dev, usbd_ctlreq *req, usbd_rqc_cal
         {
         	uint8_t *dst_p = (uint8_t *)&cdc_line;
         	uint8_t *src_p = req->data;
-        	for (int index = 0; index < sizeof(cdc_line); index++)
+        	for (unsigned int index = 0; index < sizeof(cdc_line); index++)
         	{
         	  *dst_p++ = *src_p++;
         	}
@@ -244,7 +244,7 @@ static usbd_respond cdc_control(usbd_device *dev, usbd_ctlreq *req, usbd_rqc_cal
 
 
 /* CDC loop callback. Both for the Data IN and Data OUT endpoint */
-static void cdc_loopback(usbd_device *dev, uint8_t event, uint8_t ep) {
+static void cdc_loopback(usbd_device *dev, uint8_t event __attribute__((unused)), uint8_t ep __attribute__((unused))) {
     int rxLen;
     uint8_t *txData_p;
     int txLen;
