@@ -24,12 +24,11 @@ target_compile_options(${TARGET_ELF} PRIVATE
     -march=armv7-m
     -fdata-sections
     -ffunction-sections
+    -Os
+    -g3
     -Wall
-    -Werror
     -Wextra
-
-    $<$<CONFIG:Debug>:-Og -g3 -gdwarf-4>
-    $<$<CONFIG:Release>:-Os>
+    # -Werror # not yet...
 )
 
 # === Target-specific include directories ===
@@ -40,6 +39,10 @@ target_include_directories(${TARGET_ELF} PRIVATE
 
 target_link_options(${TARGET_ELF} PRIVATE
     -T${BL_LINKER_SCRIPT}
+    -L${CMAKE_CURRENT_SOURCE_DIR} # to find sections.ld linker script
+    -nostartfiles
+    #-Wl,--gc-sections
+    -Wl,--print-memory-usage
     -Wl,-Map=${TARGET_MAP}
 )
 
@@ -51,8 +54,8 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
 )
 
 # Copy artifacts to known location
-add_custom_command(TARGET Booty.elf POST_BUILD
+add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_BINARY_DIR}/Booty.bin
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/Booty-TBD.bin   # Fixed known location
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/Booty-TEMP.bin   # Fixed known location
 )

@@ -73,10 +73,9 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMENT "Generated hex/bin, updated CRC, and printed size"
 )
 
-# Not yet
-# # Copy artifacts to known location
-# add_custom_command(TARGET Booty.elf POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E copy
-#         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BIN}
-#         ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_BIN}-TBD.bin   # Fixed known location
-# )
+# Copy artifacts to known location
+add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BIN}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_BIN}-TEMP.bin   # Fixed known location
+)
