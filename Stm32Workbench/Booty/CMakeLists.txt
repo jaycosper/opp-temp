@@ -57,6 +57,12 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
 # Copy artifacts to known location
 add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_BINARY_DIR}/Booty.bin
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/Booty-TEMP.bin   # Fixed known location
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BIN}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.bin   # Fixed known location
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_ELF}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.elf   # Fixed known location
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_HEX}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.hex   # Fixed known location
 )

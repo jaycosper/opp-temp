@@ -54,7 +54,7 @@ target_link_options(${TARGET_ELF} PRIVATE
 )
 
 # Make sure the bootloader binary exists before linking the app
-#add_dependencies(OppGen3.elf Booty.elf) # not yet...
+add_dependencies(${TARGET_ELF} Booty.elf)
 
 add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex   ${TARGET_ELF} ${TARGET_HEX}
@@ -76,6 +76,9 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
 # Copy artifacts to known location
 add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BIN}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_BIN}-TEMP.bin   # Fixed known location
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_ELF}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.elf   # Fixed known location
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_HEX}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.hex   # Fixed known location
 )

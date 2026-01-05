@@ -8,8 +8,6 @@ project(OPP LANGUAGES C ASM)
 
 # Common settings shared across all targets
 add_compile_definitions(
-    USE_HAL_DRIVER
-    STM32F103xB                  # Adjust to your exact MCU
 )
 
 add_link_options(
@@ -27,8 +25,18 @@ include_directories(
 )
 
 # Add subdirectories (each adds its own executable target)
-add_subdirectory(OppGen3)
 add_subdirectory(Booty)
+add_subdirectory(OppGen3)
+
+# Optional: Clean entire output directories for specific targets
+# (useful if you generate many files)
+set_property(
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    APPEND
+    PROPERTY ADDITIONAL_CLEAN_FILES
+        ${CMAKE_BINARY_DIR}/OppGen3
+        ${CMAKE_BINARY_DIR}/Booty
+)
 
 # =============================================================================
 # Linting target using cppcheck
