@@ -332,7 +332,7 @@ void main_copy_flash_cfg_to_ram()
 
    /* Init gen2g structure */
    u32_p = (U32 *)&gen2g_info;
-   for (INT index = 0; index < sizeof(gen2g_info)/sizeof(U32); index++)
+   for (U32 index = 0; index < sizeof(gen2g_info)/sizeof(U32); index++)
    {
       *u32_p++ = 0;
    }
@@ -420,7 +420,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

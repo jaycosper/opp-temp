@@ -27,7 +27,7 @@ target_compile_options(${TARGET_ELF} PRIVATE
     -ffunction-sections
     -Wall
     -Wextra
-    # -Werror # Not yet...
+    -Werror
 
     $<$<CONFIG:Debug>:-Og -g3 -gdwarf-4>
     $<$<CONFIG:Release>:-Os>

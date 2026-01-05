@@ -75,22 +75,22 @@ SPI_INFO spiInfo;
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: spi_init
- * 
+ *
  * ===============================================================================
  */
 /**
  * Initialize SPI processing
- * 
+ *
  * Allocate memory, and reset state machine.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void spi_init()
@@ -103,7 +103,7 @@ void spi_init()
    spiInfo.tickOcc = FALSE;
    spiInfo.numBytes = 8;
    gen2g_info.haveSpi = TRUE;
-    
+
    spiInfo.txBuf_p = (U8 *)&gen2g_info.spiOut[0];
    spiInfo.rxBuf_p = (U8 *)&gen2g_info.spiInp[0];
 
@@ -135,22 +135,22 @@ void spi_init()
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: spi_task
- * 
+ *
  * ===============================================================================
  */
 /**
  * SPI task
- * 
+ *
  * Check if SPI command has completed.  If so, received data back to host.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void spi_task()
@@ -199,7 +199,7 @@ void spi_task()
 void spi_update_rcv_cmd(
    U8                   cmd,
    U16                  numBytes,
-   U8                   *xmtData_p)
+   U8                   *xmtData_p __attribute__((unused)))
 {
    if (spiInfo.stat == STAT_WAIT_FOR_TICK)
    {

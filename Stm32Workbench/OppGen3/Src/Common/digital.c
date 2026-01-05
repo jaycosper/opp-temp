@@ -47,7 +47,7 @@
  *
  *===============================================================================
  */
- 
+
 #include <stdlib.h>
 #include "stdtypes.h"
 #include "stdlintf.h"
@@ -209,23 +209,23 @@ void digital_upd_outputs(
  * ===============================================================================
  *
  * Name: digital_init
- * 
+ *
  * ===============================================================================
  */
 /**
  * Initialize the digital I/O port
- * 
+ *
  * Initialize digital I/O port, and the other digital control signals.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
-void digital_init(void) 
+void digital_init(void)
 {
    U32                        outputMask = 0;
    GPIO_InitTypeDef           pinCfg;
@@ -238,7 +238,7 @@ void digital_init(void)
 #define NEO_SOL_OUT_BIT_MASK  0xf1
 #define NEO_SPI_CLK_BIT_MASK  0x0f
 #define SOL_MASK              0x0f
-#define SOL_INP_BIT_MASK      0x0f  
+#define SOL_INP_BIT_MASK      0x0f
 #define SOL_OUT_BIT_MASK      0xf0
 
 #define MTRX_INPUT_BIT_MASK   0xff000000
@@ -248,10 +248,10 @@ void digital_init(void)
 #define MAX_SOL_MASK          0x000f000f
 #define SPI_INP_BIT_MASK      0xf4000000
 #define SPI_OUT_BIT_MASK      0x0b000000
-   
+
    /* Init gen2g structure */
    U32 *u32_p = (U32 *)&dig_info;
-   for (INT index = 0; index < sizeof(dig_info)/sizeof(U32); index++)
+   for (U32 index = 0; index < sizeof(dig_info)/sizeof(U32); index++)
    {
       *u32_p++ = 0;
    }
@@ -551,20 +551,20 @@ void digital_init(void)
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: digital_task
- * 
+ *
  * ===============================================================================
  */
 /**
  * Task for polling inputs
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void digital_task(void)
@@ -586,7 +586,7 @@ void digital_task(void)
 #define SWITCH_THRESH         16
 #define PWM_PERIOD            16
 #define MIN_OFF_INC           0x10
-   
+
    if (gen2g_info.validCfg)
    {
       /* Grab the inputs */
@@ -597,7 +597,7 @@ void digital_task(void)
          changedBits = (dig_info.prevInputs ^ inputs) & gen2g_info.inpMask[0];
          updFilterHi = 0;
          updFilterLow = 0;
-         
+
          /* Perform input processing for both input and solenoid boards */
          for (index = 0, currBit = 1, inpInfo_p = &dig_info.inpInfo[0];
             index < RS232I_NUM_GEN2_INP; index++, currBit <<= 1, inpInfo_p++)
@@ -703,7 +703,7 @@ void digital_task(void)
             {
                dig_info.mtrxCfg.column = 0;
             }
-         
+
 #if GEN2G_DEBUG_PORT == 0
             dig_info.outputMask |= MTRX_OUTPUT_BIT_MASK;
 #else
@@ -722,7 +722,7 @@ void digital_task(void)
          }
          dig_info.mtrxCfg.waitCnt++;
       }
-      
+
       if ((gen2g_info.typeWingBrds & (1 << WING_SOL)) != 0)
       {
          /* Perform solenoid processing */
@@ -783,7 +783,7 @@ void digital_task(void)
                      solInfo_p->state.solState = SOL_STATE_IDLE;
                   }
                }
-            
+
                if (solInfo_p->state.solState == SOL_INITIAL_KICK)
                {
                   /* Check if elapsed time is over initial kick time */
@@ -918,9 +918,9 @@ void digital_task(void)
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: digital_set_solenoid_input
- * 
+ *
  * ===============================================================================
  */
 /**
@@ -928,14 +928,14 @@ void digital_task(void)
  *
  * Set a solenoid input.  To disable a solenoid, the input solenoid number can be
  * set to SOL_INP_CLEAR_SOL.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    If multiple inputs are used to fire a solenoid, the inputs are
  *    logically OR'd together.
- * 
+ *
  * ===============================================================================
  */
 void digital_set_solenoid_input(
@@ -943,7 +943,7 @@ void digital_set_solenoid_input(
    RS232I_SET_SOL_INP_E       solIndex)
 {
    DIG_SOL_STATE_T            *solState_p;
-   
+
    if (inpIndex < RS232I_NUM_GEN2_INP)
    {
       solState_p = &dig_info.solInfo[solIndex & SOL_INP_SOL_MASK].state;
@@ -979,7 +979,7 @@ void digital_set_solenoid_input(
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: digital_set_kick_pwm
  *
  * ===============================================================================
@@ -1075,20 +1075,20 @@ void digital_upd_ind_sol_cfg(
  * ===============================================================================
  *
  * Name: digital_upd_sol_cfg
- * 
+ *
  * ===============================================================================
  */
 /**
  * Update solenoid configurations
  *
  * Update solenoid configurations.
- * 
+ *
  * @param   numSol - Number of solenoids to be updated.
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void digital_upd_sol_cfg(
@@ -1102,7 +1102,7 @@ void digital_upd_sol_cfg(
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: digital_upd_ind_inp_cfg
  *
  * ===============================================================================
@@ -1198,20 +1198,20 @@ RS232I_CFG_INP_TYPE_E digital_get_inp_cfg(
  * ===============================================================================
  *
  * Name: digital_upd_inp_cfg
- * 
+ *
  * ===============================================================================
  */
 /**
  * Update input configurations
  *
  * Update input configurations.
- * 
+ *
  * @param   numInp - Number of inputs to be updated.
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void digital_upd_inp_cfg(
@@ -1370,7 +1370,7 @@ U8 *digital_convert_v0_cfg_to_v1_cfg()
    }
    if (hasNeo)
    {
-      for (INT index = 0; index < sizeof(GEN2G_NEO_CFG_T); index++)
+      for (U32 index = 0; index < sizeof(GEN2G_NEO_CFG_T); index++)
       {
          ((U8 *)&gen2g_info.neoCfg)[index] = *cfg_p++;
       }

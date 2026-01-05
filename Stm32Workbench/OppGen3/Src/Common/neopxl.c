@@ -135,22 +135,22 @@ void neo_spi_fill_out_dma_data(
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: neo_init
- * 
+ *
  * ===============================================================================
  */
 /**
  * Initialize neopixel processing
- * 
+ *
  * Turn pixels to default output, allocate memory, and reset state machine.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void neo_init()
@@ -253,7 +253,7 @@ void neo_init()
             neoInfo.dma_p[index] = 0xffffffff;
          }
       }
-    
+
       for (tmp1_p = currPxlVal_p, tmp2_p = newPxlVal_p;
          tmp1_p < currPxlVal_p + neoInfo.numDataBytes; tmp1_p++, tmp2_p++)
       {
@@ -337,7 +337,7 @@ void neo_init()
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: neo_10ms_tick
  *
  * ===============================================================================
@@ -362,7 +362,7 @@ void neo_10ms_tick()
 
 /*
  * ===============================================================================
- * 
+ *
  * Name: neo_fade_proc
  *
  * ===============================================================================
@@ -446,22 +446,22 @@ void neo_end_fade_proc()
  * ===============================================================================
  *
  * Name: neo_task
- * 
+ *
  * ===============================================================================
  */
 /**
  * Neopixel task
- * 
+ *
  * Check if a new neopixel cycle needs to start.  If so, clear indices, create
  * data for two neopixels, and fill the SPI buffer.  Otherwise check if the
  * buffer needs more data.
- * 
- * @param   None 
+ *
+ * @param   None
  * @return  None
- * 
- * @pre     None 
+ *
+ * @pre     None
  * @note    None
- * 
+ *
  * ===============================================================================
  */
 void neo_task()
@@ -576,7 +576,7 @@ void neo_copy_cfg(
    U8                   *src_p)
 {
    U8 *dst_p = (U8 *)&gen2g_info.neoCfg;
-   for (INT index = 0; index < sizeof(GEN2G_NEO_CFG_T); index++)
+   for (U32 index = 0; index < sizeof(GEN2G_NEO_CFG_T); index++)
    {
       *dst_p++ = *src_p++;
    }
