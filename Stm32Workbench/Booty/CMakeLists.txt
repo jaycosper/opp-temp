@@ -26,6 +26,7 @@ target_compile_options(${TARGET_ELF} PRIVATE
     -ffunction-sections
     -Os
     -g3
+    -flto
     -Wall
     -Wextra
     # -Werror # not yet...
@@ -41,7 +42,7 @@ target_link_options(${TARGET_ELF} PRIVATE
     -T${BL_LINKER_SCRIPT}
     -L${CMAKE_CURRENT_SOURCE_DIR} # to find sections.ld linker script
     -nostartfiles
-    #-Wl,--gc-sections
+    -Wl,--gc-sections
     -Wl,--print-memory-usage
     -Wl,-Map=${TARGET_MAP}
 )
