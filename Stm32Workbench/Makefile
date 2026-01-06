@@ -66,7 +66,7 @@ OppGen3 Booty: setup
 
 lint: setup
 	@echo "Running lint..."
-	@cd $(BUILD_DIR) && ninja lint
+	@cd $(BUILD_DIR) && ninja lint-OppGen3 lint-Booty
 
 # ------------------------------------------------------------------
 # Setup: Configure CMake (only if needed)

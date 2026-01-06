@@ -82,3 +82,61 @@ add_custom_command(TARGET ${TARGET_ELF} POST_BUILD
         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_HEX}
         ${CMAKE_CURRENT_SOURCE_DIR}/../Gen3Images/${TARGET_NAME}-TEMP.hex   # Fixed known location
 )
+
+# =============================================================================
+# Linting target using cppcheck
+# =============================================================================
+
+find_program(CPPCHECK cppcheck)
+
+set(LINT_SOURCE_FILES
+    ${APP_SOURCES}
+    #${APP_MIDDLEWARE_SOURCES}
+    #${APP_HAL_SOURCES}
+    #${APP_CMSIS_SOURCES}
+)
+
+if(CPPCHECK)
+    add_custom_target(lint-${TARGET_NAME}
+        COMMAND ${CPPCHECK}
+            --enable=all
+            --suppress=missingIncludeSystem     # Suppress warnings about system headers
+            --suppress=unmatchedSuppression     # Clean output
+            --suppress=knownConditionTrueFalse  # Optional: reduce noise
+            --inconclusive                      # Allow inconclusive checks
+            --quiet                             # Only show errors/warnings
+            --error-exitcode=1                  # Fail build if issues found
+            --force                             # Check all configurations
+            #--check-config                      # Check for configuration issues
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Inc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F1xx_HAL_Driver/Inc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F1xx/Include
+            -I ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Include
+            ${LINT_SOURCE_FILES} 2> ${CMAKE_BINARY_DIR}/../_logs/lint-${TARGET_NAME}.log
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running cppcheck static analysis..."
+        VERBATIM
+    )
+else()
+    message(WARNING "cppcheck not found — lint target will be unavailable. Install with: sudo apt install cppcheck")
+endif()
+# find_program(CLANG_TIDY clang-tidy)
+#
+# if(CLANG_TIDY)
+#     add_custom_target(lint
+#         COMMAND ${CLANG_TIDY}
+#             -checks='*,-llvm-*,-google-*,-cert-*'  # Customize checks
+#             -header-filter=.*
+#             --quiet
+#             ${ALL_SOURCE_FILES}
+#             --
+#             -I${CMAKE_SOURCE_DIR}/Inc
+#             -I${CMAKE_SOURCE_DIR}/Drivers/STM32F1xx_HAL_Driver/Inc
+#             # ... other includes
+#         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#         COMMENT "Running clang-tidy..."
+#     )
+# endif()
